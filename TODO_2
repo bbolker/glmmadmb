@@ -1,0 +1,20 @@
+
+alternative param of NB
+more complex random effects structure
+  * how flexible is/should be possible?
+  * interface/specification language: MCMCglmm, lme4, SAS PROC MIXED?
+
+"R-side" random structure: temporal, spatial autocorrelation
+  (hierarchical)
+
+alternative distributions: binomial (n>1)
+
+alternative links
+
+alternative random effect distributions?
+
+predict/simulate methods (with/without random effect specifications)
+confidence intervals on predictions?
+
+allow offset (group?) to be specified without quotes
+(parse(substitute())?)

@@ -1,0 +1,120 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> library(lme4)
+Loading required package: lattice
+Loading required package: Matrix
+Loading required package: Rcpp
+Loading required package: RcppEigen
+
+Attaching package: ‘lme4’
+
+The following object is masked from ‘package:glmmADMB’:
+
+    VarCorr
+
+> 
+> ## started out as an attempt to test residuals calculations
+> ## between lme4 and
+> 
+> ## would like to do a simpler example (e.g. glm only, from ?glm)
+> d.AD <- data.frame(counts=c(18,17,15,20,10,20,25,13,12),
++                    outcome=gl(3,1,9),
++                    treatment=gl(3,3))
+> glm.D93 <- glm(counts ~ outcome + treatment, family=poisson,
++                data=d.AD)
+> glm.D93.admb <- glmmadmb(counts~outcome+treatment, family="poisson",
++           data=d.AD, admb.opts=admbControl(poisshack=FALSE))
+Estimated covariance matrix may not be positive definite
+ 0.0476191 0.06 0.06 0.0638298 0.075
+Estimated covariance matrix may not be positive definite
+ 0.0476191 0.06 0.06 0.0638298 0.075
+> r1P <- residuals(glm.D93,type="pearson")
+> r2P <- residuals(glm.D93.admb,type="pearson")
+> stopifnot(max(abs(r1P-r2P))<2e-4)
+> r1R <- residuals(glm.D93,type="response")
+> r2R <- residuals(glm.D93.admb,type="response")
+> stopifnot(max(abs(r1R-r2R))<5e-4)
+> 
+> coef(glm.D93)
+  (Intercept)      outcome2      outcome3    treatment2    treatment3 
+ 3.044522e+00 -4.542553e-01 -2.929871e-01  8.716884e-16  4.557335e-16 
+> coef(glm.D93.admb)
+  (Intercept)      outcome2      outcome3    treatment2    treatment3 
+ 3.044519e+00 -4.542545e-01 -2.929868e-01 -1.958447e-08  4.232022e-09 
+> ## zero-inflated negative binomial is probably best for fitting data:
+> ## glmer can do Poisson-lognormal, not NB, and not zero-inflation
+> 
+> ## ... so fit Poisson with RE, even though it's not a great fit to the data
+> 
+> OwlModel_poiss.glmer <- glmer(SiblingNegotiation ~ FoodTreatment * SexParent +
++                               (1|Nest)+offset(logBroodSize),
++                               data=Owls, family=poisson)
+> 
+> 
+> OwlModel_poiss.admb <- glmmadmb(SiblingNegotiation~FoodTreatment*SexParent+
++                                 (1|Nest)+offset(logBroodSize),
++                                 data=Owls, family="poisson",
++                                 admb.opts=admbControl(poisshack=FALSE))
+> 
+> OwlModel_poiss.glmer2 <- glmer(SiblingNegotiation ~ FoodTreatment * SexParent +
++                                (1|Nest)+offset(logBroodSize),
++                                data=Owls, family=poisson,
++                                start=list(fixed=coef(OwlModel_poiss.admb)))
+> 
+> ## matrix not pos definite in sparse choleski
+> ## "Estimated covariance matrix may not be positive definite"
+> logLik(OwlModel_poiss.admb)
+'log Lik.' -2601.39 (df=5)
+> logLik(OwlModel_poiss.glmer)
+'log Lik.' -2601.388 (df=5)
+> 
+> ## avoid Suggests: ggplot2 requirement
+> ## if (require(ggplot2)) {
+> ##  ca <- fixef(OwlModel_poiss.glmer)
+> ##  cg <- coef(OwlModel_poiss.admb)
+> ##  d <- rbind(data.frame(par=names(ca),est=ca,pkg="lme4"),
+> ##             data.frame(par=names(cg),est=cg,pkg="glmmADMB"))
+> ##  levels(d$par) <- c("food","food:sex","intercept","sex")
+> ##  qplot(est,par,data=d,colour=pkg)
+> ## }
+> 
+> r_glmer <- residuals(OwlModel_poiss.glmer)
+> r_admb <- residuals(OwlModel_poiss.admb)
+> 
+> ## plot(r_glmer,r_admb)                       
+> 
+> 
+> proc.time()
+   user  system elapsed 
+ 19.992   5.256  25.483 

@@ -1,0 +1,50 @@
+export(glmmadmb,glmm.admb,admbControl,mcmcControl,get_bin_version,getdata,check_rforge)
+
+importFrom(stringr,str_extract)
+importFrom(plyr,mutate,ddply)
+import(MASS,methods)
+importFrom(coda,mcmc)
+importFrom(nlme,ranef,fixef,VarCorr)
+importFrom(R2admb,dat_write,stdEr)
+importFrom(stats,nobs,extractAIC)
+importFrom(Matrix,rankMatrix)
+## importMethodsFrom("nlme",ranef,VarCorr)
+export(ranef) ## (needs to be explicit even if using generic exportPattern)
+export(fixef)
+export(stdEr)
+export(VarCorr)
+export(step,stepAIC) ## STUBS to try to intercept ...
+## export(dat_write) ## now use R2admb version
+## export(nobs)
+
+## from base packages
+importFrom("graphics", "plot")
+importFrom("stats", "AIC", "as.formula", "cov2cor", "formula",
+             "logLik", "model.matrix", "model.offset", "model.response",
+             "pchisq", "plogis", "pnorm", "printCoefmat", "qlogis",
+             "qnorm", "terms", "update.formula", "vcov")
+importFrom("utils", "download.file", "file_test", "read.table",
+             "write.table")
+
+S3method(anova,glmmadmb)
+S3method(coef,glmmadmb)
+S3method(df.residual,glmmadmb)
+S3method(extractAIC,glmmadmb)
+S3method(fitted,glmmadmb)
+S3method(fixef,glmmadmb)
+S3method(logLik,glmmadmb)
+S3method(model.frame,glmmadmb)
+S3method(nobs,glmmadmb)
+S3method(predict,glmmadmb)
+S3method(print,glmmadmb)
+S3method(print,summary.glmmadmb)
+S3method(print,VarCorr)
+S3method(ranef,glmmadmb)
+S3method(residuals,glmmadmb)
+S3method(stdEr,glmmadmb)
+S3method(summary,glmmadmb)
+S3method(VarCorr,glmmadmb)
+S3method(VarCorr,summary.glmmadmb)
+S3method(vcov,glmmadmb)
+
+

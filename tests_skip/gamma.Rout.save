@@ -1,0 +1,98 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> 
+> set.seed(1002)
+> nblock <- 10
+> nperblock <- 50
+> sd.u <- 1
+> ntot <- nblock*nperblock
+> d <- data.frame(x=runif(ntot),f=factor(rep(LETTERS[1:nblock],each=nperblock)))
+> r <- rnorm(nblock,mean=0,sd=sd.u)
+> gshape <- 1.5
+> d$eta <- with(d,0.2+0.5*x+r[f])
+> d$mu <- exp(d$eta)
+> d$y <- rgamma(ntot,shape=gshape,scale=d$mu/gshape)
+> 
+> g1 <- glmmadmb(y~x+(1|f),data=d,family="gamma")
+> g1L <- glmmPQL(y~x,random=~1|f,data=d,family=Gamma(link="log"))
+Loading required package: nlme
+
+Attaching package: ‘nlme’
+
+The following object is masked from ‘package:glmmADMB’:
+
+    VarCorr
+
+iteration 1
+iteration 2
+iteration 3
+iteration 4
+iteration 5
+iteration 6
+> 
+> coef(g1)
+(Intercept)           x 
+  0.4565169   0.5105906 
+> fixef(g1L)
+(Intercept)           x 
+  0.4506765   0.5104694 
+> VarCorr(g1)
+Group=f
+            Variance StdDev
+(Intercept)    1.023  1.012
+> VarCorr(g1L)
+f = pdLogChol(1) 
+            Variance  StdDev   
+(Intercept) 1.0225006 1.0111877
+Residual    0.6504045 0.8064766
+> 
+> d2 <- d
+> d2$eta <- with(d2,0.2+0.5*x) ## 0.5 ## 
+> d2$mu <- exp(d2$eta)
+> d2$y <- rgamma(ntot,shape=gshape,scale=d2$mu/gshape)
+> 
+> g0 <- glmmadmb(y~x,data=d2,family="gamma")
+Estimated covariance matrix may not be positive definite
+ 4.44024e-05 0.669336 0.681552
+> g0L <- glm(y~x,data=d2,family=Gamma(link="log"))
+> coef(g0)
+(Intercept)           x 
+  0.2274486   0.4454200 
+> coef(g0L)
+(Intercept)           x 
+  0.2274488   0.4454205 
+> 
+> proc.time()
+   user  system elapsed 
+ 11.632   3.224  14.885 

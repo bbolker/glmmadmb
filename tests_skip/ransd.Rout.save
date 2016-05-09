@@ -1,0 +1,119 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> data("cbpp",package="lme4")
+> 
+> gm1 <- glmmadmb(cbind(incidence, size - incidence) ~ period + (1 | herd),
++                    family = "binomial", data = cbpp)
+matrix not pos definite in sparse choleski
+> 
+> ranef(gm1)
+$herd
+   (Intercept)
+1   0.59113330
+2  -0.29951639
+3   0.40681651
+4   0.03938333
+5  -0.19037992
+6  -0.40116575
+7   0.89084943
+8   0.60033432
+9  -0.23844043
+10 -0.54209341
+11 -0.08476149
+12 -0.06501281
+13 -0.69149400
+14  0.97261479
+15 -0.53178414
+
+> ranef(gm1,sd=TRUE)
+$`1`
+   (Intercept)
+1    0.3816168
+2    0.3956116
+3    0.3427058
+4    0.4345484
+5    0.3828861
+6    0.4070871
+7    0.3748642
+8    0.3693359
+9    0.4735239
+10   0.4019132
+11   0.3495228
+12   0.4558306
+13   0.4138977
+14   0.3947676
+15   0.4215201
+
+> ranef(gm1,scale=FALSE)
+$herd
+   (Intercept)
+1     0.917440
+2    -0.464850
+3     0.631380
+4     0.061123
+5    -0.295470
+6    -0.622610
+7     1.382600
+8     0.931720
+9    -0.370060
+10   -0.841330
+11   -0.131550
+12   -0.100900
+13   -1.073200
+14    1.509500
+15   -0.825330
+
+> ranef(gm1,sd=TRUE,scale=FALSE)
+$`1`
+   (Intercept)
+1      0.59227
+2      0.61399
+3      0.53188
+4      0.67442
+5      0.59424
+6      0.63180
+7      0.58179
+8      0.57321
+9      0.73491
+10     0.62377
+11     0.54246
+12     0.70745
+13     0.64237
+14     0.61268
+15     0.65420
+
+> 
+> proc.time()
+   user  system elapsed 
+  2.156   2.164   4.169 

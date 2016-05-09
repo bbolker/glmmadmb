@@ -1,0 +1,78 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> library(bbmle)
+Loading required package: stats4
+
+Attaching package: ‘bbmle’
+
+The following object is masked from ‘package:glmmADMB’:
+
+    stdEr
+
+The following object is masked from ‘package:R2admb’:
+
+    stdEr
+
+> set.seed(101)
+> 
+> n <- 1000
+> d <- data.frame(x=runif(n))
+> d <- transform(d,y=rlogis(n,1+2*x,0.5))
+> 
+> m1 <- mle2(y~dlogis(m,exp(logs)),
++            parameters=list(m~x),
++            data=d,
++            start=list(m=0,logs=0))
+> ## mle2 FIXME: need better error message for
+> ## Error in if (vpos0 == 1) 1 else vposvals[vpos0 - 1] + 1 : 
+> ##   argument is of length zero
+> ##   start=list(x=0,logs=0))
+> coef(m1)
+m.(Intercept)           m.x          logs 
+    1.0320246     2.0215162    -0.7008299 
+> 
+> m2 <- glmmadmb(y~x,data=d,family="logistic")
+Estimated covariance matrix may not be positive definite
+ 9.88218e-06 0.728547 0.746143
+> coef(m2)
+(Intercept)           x 
+   1.031988    2.021615 
+> 
+> ## glmmadmb FIXME: bogus printout in number of observations
+> ##  should return sigma/log-sigma info
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  1.596   2.584   4.116 

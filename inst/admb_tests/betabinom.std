@@ -1,0 +1,8 @@
+ index   name       value      std.dev
+     1   beta      -1.0364e+01 1.3983e+00
+     2   beta       3.0682e+01 1.6456e+00
+     3   log_alpha  5.7893e-01 7.8608e-02
+     4   real_beta -2.8704e+00 1.5392e-01
+     5   real_beta  4.7773e+00 2.5622e-01
+     6   alpha      1.7841e+00 1.4025e-01
+     7   S          1.6487e+00 0.0000e+00

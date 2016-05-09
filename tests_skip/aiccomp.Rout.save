@@ -1,0 +1,74 @@
+
+R Under development (unstable) (2013-05-22 r62774) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## basic comparison of a series of glmmADMB models
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> testLevel <- if (nzchar(s <- Sys.getenv("GLMMADMB_TEST_LEVEL"))) as.numeric(s) else 1
+> ## slow, only run when requested
+> if (testLevel>2) {
++ 
++     set.seed(1001)
++     nblock <- 10
++     N <- 500
++     d <- data.frame(x=runif(N),
++                     f=factor(rep(seq(nblock),each=N/nblock)))
++     u <- rnorm(nblock,sd=1)
++     d$y <- with(d,rnbinom(N,mu=exp(1+2*x+u[f]),size=1.2))
++     d$obs <- factor(seq(nrow(d)))
++ 
++     library(glmmADMB)
++ 
++     m_poiss <- glmmadmb(y~x+(1|f),family="poisson",data=d)
++     m_ZIP <- glmmadmb(y~x+(1|f),family="poisson",data=d,
++                       zeroInflation=TRUE,
++                       start=list(fixed=fixef(m_poiss)))
++     m_LNPoiss <- glmmadmb(y~x+(1|f)+(1|obs),family="poisson",data=d)
++     m_NB <- glmmadmb(y~x+(1|f),family="nbinom",data=d)
++     m_ZINB <- glmmadmb(y~x+(1|f),family="nbinom",data=d,zeroInflation=TRUE)
++     m_NB1 <- glmmadmb(y~x+(1|f),family="nbinom1",data=d)
++     m_ZINB1 <- glmmadmb(y~x+(1|f),family="nbinom1",data=d,zeroInflation=TRUE)
++ 
++     ndf <- function(x) {
++         attr(logLik(x),"df")
++     }
++ 
++     nvec <- c("poiss","ZIP","LNPoiss","NB","ZINB","NB1","ZINB1")
++     mlist <- lapply(paste("m_",nvec,sep=""),get)
++     names(mlist) <- nvec
++     sapply(mlist,ndf)
++     library(bbmle)
++     AICtab(mlist)
++ }
+> 
+> proc.time()
+   user  system elapsed 
+  2.932   1.988   4.782 

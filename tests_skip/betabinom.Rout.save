@@ -1,0 +1,75 @@
+
+R Under development (unstable) (2013-05-22 r62774) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library("glmmADMB")
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> 
+> set.seed(1002)
+> nblock <- 10
+> nperblock <- 50
+> sd.u <- 0.2
+> ntot <- nblock*nperblock
+> d <- data.frame(x=runif(ntot),f=factor(rep(LETTERS[1:nblock],each=nperblock)))
+> r <- rnorm(nblock,mean=0,sd=sd.u)
+> phi <- 2
+> d$eta0 <- with(d,-3+5*x)
+> d$eta <- with(d,eta0+r[f])
+> d$mu0 <- plogis(d$eta0)
+> d$mu <- plogis(d$eta)
+> theta <- 2
+> shape1 <- theta * d$mu
+> shape2 <- theta * (1 - d$mu)
+> shape1_0 <- theta * d$mu0
+> shape2_0 <- theta * (1 - d$mu0)
+> d$y0 <- rbinom(ntot, size = 20, prob = rbeta(ntot, shape1_0, shape2_0))
+> d$y <- rbinom(ntot, size = 20, prob = rbeta(ntot, shape1, shape2))
+> if (FALSE) {
++     with(d,plot(x,y0))
++     with(d,curve(20*plogis(-3+5*x),col=2,add=TRUE))
++ }
+> if (FALSE) {
++   ## comment out until binaries are updated on all platforms
++ g0 <- glmmadmb(cbind(y0,20-y0)~x,data=d,family="betabinomial")
++ 
++ coef(g0)
++ summary(g0)
++ if (FALSE) {
++     g1 <- glmmadmb(cbind(y,20-y)~x+(1|f),data=d,family="betabinomial",
++                    save.dir="bbtmp")
++     coef(g1)
++     VarCorr(g1)
++     summary(g1)
++ }
++ }
+> 
+> proc.time()
+   user  system elapsed 
+  2.868   2.112   4.845 

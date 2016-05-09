@@ -1,0 +1,54 @@
+Package: glmmADMB
+Version: 0.8.4
+Revision: $Revision: 286 $
+Date: 2016-01-19
+Title: Generalized Linear Mixed Models using 'AD Model Builder'
+Author: Hans Skaug <Hans.Skaug@mi.uib.no>, Dave Fournier
+    <otter@otter-rsch.com>, Anders Nielsen <andersn@hawaii.edu>, Arni Magnusson
+    <arnima@hafro.is>, and Ben Bolker <bolker@mcmaster.ca>
+Maintainer: Ben Bolker <bolker@mcmaster.ca>
+LazyData: yes
+BuildVignettes: no
+VignetteBuilder: knitr
+Description: Fits mixed-effects models using a variety of distributions.
+Imports:
+    stats,
+    Matrix,
+    nlme,
+    R2admb,
+    stringr,
+    plyr,
+    coda
+Depends:
+    R (>= 2.13),
+    methods,
+    MASS
+Suggests:
+    lattice,
+    lme4,
+    mlmRev,
+    plotMCMC,
+    ggplot2,
+    bbmle,
+    pscl,
+    knitr,
+    car
+License: BSD_2_clause + file LICENSE
+URL: http://glmmadmb.r-forge.r-project.org, http://admb-project.org
+BuildVignette: no
+Collate:
+    'anova.glmm.admb.R'
+    'getdata.R'
+    'glmm.admb.R'
+    'logLik.glmm.admb.R'
+    'methods.R'
+    'par_read.R'
+    'phicalc.R'
+    'pin_write.R'
+    'plot.glmm.admb.R'
+    'predict.R'
+    'print.glmm.admb.R'
+    'rformula.R'
+    'summary.glmm.admb.R'
+    'utilities.R'
+    'getbin.R'

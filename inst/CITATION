@@ -1,0 +1,33 @@
+citHeader("To cite package 'glmmADMB' in publications use:")
+
+if(!exists("meta") || is.null(meta)) meta <- packageDescription("glmmADMB")
+
+year <- sub(".*(2[[:digit:]]@{3@})-.*", "\\1", meta$Date, perl = TRUE)
+vers <- paste("R package version", meta$Version)
+
+bibentry(bibtype = "Article",
+         author=
+         personList(as.person("D. A. Fournier"),
+                    as.person("H. J. Skaug"),
+                    as.person("J. Ancheta"),
+                    as.person("J. Ianelli"),
+                    as.person("A. Magnusson"),
+                    as.person("M.N. Maunder"),
+                    as.person("A. Nielsen"),
+                    as.person("J. Sibert")),
+         year= 2012,
+         title="{AD Model Builder}: using automatic differentiation for statistical inference of highly parameterized complex nonlinear models",
+         journal="Optim. Methods Softw.",
+         volume=27,
+         pages="233-249")
+
+bibentry(bibtype="Manual",
+         title = meta$Title,
+         author = personList(
+         as.person("Hans Skaug"),
+         as.person("Dave Fournier"),
+         as.person("Ben Bolker"),
+         as.person("Arni Magnusson"),
+         as.person("Anders Nielsen")),
+         year = year,
+         note = vers)

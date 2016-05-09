@@ -1,0 +1,144 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## tests of a single random grouping variable
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> 
+> ## random-intercept model
+> set.seed(101)
+> nblock <- 10
+> nrep <- 10
+> d <- expand.grid(f=factor(LETTERS[1:nblock]),rep=1:nrep)
+> N <- nrow(d)
+> d$x <- runif(N)
+> u <- rnorm(nblock,sd=1)
+> beta <- c(1,2)
+> eta <- model.matrix(~x,data=d) %*% beta + u[as.numeric(d$f)]
+> d$y <- rpois(N,exp(eta))
+> ##g1 <- glmm.admb(y~x,random=~1,group="f",family="poisson",data=d)
+> g1 <- glmmadmb(y~x+(1|f),family="poisson",data=d)
+> ## identical 
+> coef(g1)
+(Intercept)           x 
+   1.020478    1.900144 
+> g1$stdbeta
+(Intercept)           x 
+    0.30867     0.11820 
+> logLik(g1)
+'log Lik.' -260.506 (df=3)
+> g1$S
+$f
+            (Intercept)
+(Intercept)     0.88148
+
+> g1$sd_S
+$f
+            (Intercept)
+(Intercept)     0.40254
+
+> summary(g1$U[[1]])
+  (Intercept)       
+ Min.   :-1.333500  
+ 1st Qu.:-0.971340  
+ Median :-0.047975  
+ Mean   : 0.007889  
+ 3rd Qu.: 0.949375  
+ Max.   : 1.274000  
+> 
+> ## try with data in global workspace, not data=argument
+> y <- d$y
+> x <- d$x
+> f <- d$f
+> g1GW <- glmmadmb(y~x+(1|f),family="poisson")
+> rm(y,x,f)
+> 
+> ## random intercepts and slopes
+> set.seed(101)
+> nblock <- 10
+> nrep <- 10
+> d2 <- expand.grid(f=factor(LETTERS[1:nblock]),rep=1:nrep)
+> N <- nrow(d)
+> d2$x <- runif(N)
+> u_f <- rnorm(nblock,sd=1)
+> u_fx <- rnorm(nblock,sd=0.5)
+> beta <- c(1,2)
+> eta <- model.matrix(~x,data=d2) %*% beta + u[as.numeric(d2$f)]+
++   u[as.numeric(d2$f)]*d$x
+> d2$y <- rpois(N,exp(eta))
+> 
+> ##old style:
+> if (FALSE) {
++     ## FIXME: fails on r-forge linux x64 tests
++     g2 <- glmmadmb(y~x,random=~x|f,family="poisson",data=d2)
++     g2A <- glmmadmb(y~x+(x|f),family="poisson",data=d2,
++                     admb.opts=admbControl(noinit=FALSE))
++ 
++     coef(g2)
++     logLik(g2)
++     g2$U
++     summary(fitted(g2))
++     g2$S
++     g2$sd_S
++ }
+> 
+> if (FALSE) {
++   glmmadmb(y~x+(x|f),family="poisson",data=d2,
++            save.dir="tmp",
++            admb.opts=admbControl(run=FALSE))
++ }
+> 
+> if (FALSE) {
++     ## FIXME: test fails on windows with current versions (r1696 lme4, r211 glmmADMB)
++     library(lme4)
++     g2B <- glmer(y~x+(1|f)+(0+x|f),family="poisson",data=d2)
++     stopifnot(all.equal(fixef(g2B),coef(g2),tol=3e-5))
++     stopifnot(all.equal(unname(unlist(VarCorr(g2B))),unname(diag(g2$S[[1]])),tol=3e-3))
++ }
+> 
+> 
+> 
+> g2D <- glmmadmb(y~x+(x|f),family="poisson",data=d2,
++                admb.opts=admbControl(maxph=NA))
+> 
+> g2E <- glmmadmb(y~x+(x|f),family="poisson",data=d2,
++                admb.opts=admbControl(noinit=FALSE,poisshack=FALSE))
+> 
+> if (FALSE) {
++   ## this one still doesn't work
++   g2C <- glmmadmb(y~x+(x|f),family="poisson",data=d2)
++ }
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+ 10.972   3.380  14.507 

@@ -1,0 +1,21 @@
+inst/bin/linux32/glmmadmb
+inst/bin/linux64/glmmadmb
+inst/bin/windows32/glmmadmb.exe
+inst/bin/windows64/glmmadmb.exe
+inst/bin/macos32/glmmadmb
+inst/bin/macos64/glmmadmb
+## for SVN
+inst/bin/linux32/.svn/text-base/glmmadmb.svn-base
+inst/bin/linux64/.svn/text-base/glmmadmb.svn-base
+inst/bin/windows32/.svn/text-base/glmmadmb.exe.svn-base
+inst/bin/windows64/.svn/text-base/glmmadmb.exe.svn-base
+inst/bin/macos32/.svn/text-base/glmmadmb.svn-base
+inst/bin/macos64/.svn/text-base/glmmadmb.svn-base
+## old SVN files
+inst/bin/linux/.svn/text-base/nbmm.svn-base
+inst/bin/linux/.svn/text-base/bvprobit.svn-base
+inst/bin/macos/.svn/text-base/bvprobit.svn-base
+inst/bin/macos/.svn/text-base/nbmm.svn-base
+inst/bin/windows/.svn/text-base/bvprobit.exe.svn-base
+inst/bin/windows/.svn/text-base/nbmm.exe.svn-base
+

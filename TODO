@@ -1,0 +1,22 @@
+Wish/to-do list for glmmADMB
+
+* formula interface for zero-inflation
+* more complex variance models (ASREML syntax)
+* Can we add some sort of progress bar or "working ..." message in the absence of voluminous messages (difficult); better isolation of messages to set command-line flags
+* Add more examples, tests, vignettes ... especially a smaller (quicker) data set for the main example
+* work on predict() method; predictions incl REs
+* simulate() method
+* save (more) fitted models in inst/ so they can be used easily in examples without doing the fits each time
+* speed up (Skaug)
+* more robust first pass, weighted SS or quasi-likelihood (Fournier)
+* access to profiling
+* MCMC fixes: access 'real beta' by multiplying by phi
+* would making predictions into sdreport variables give (Wald) CIs that included uncertainty in Var-Corr?
+* vignette: more on troubleshooting, R2admb intro, importance sample,
+* allow MCMC starting from previous fit; progress bar etc. for MCMC?
+* flag to allow success without pos-def Hessian?
+
+DONE:
+
+
+

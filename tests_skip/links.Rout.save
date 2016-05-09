@@ -1,0 +1,197 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## testing identity, cloglog links, gaussian family
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> 
+> set.seed(1002)
+> nblock <- 10
+> nperblock <- 50
+> sd.u <- 1
+> beta <- c(0.2,0.5)
+> ntot <- nblock*nperblock
+> d <- data.frame(x=runif(ntot),f=factor(rep(LETTERS[1:nblock],each=nperblock)))
+> r <- rnorm(nblock,mean=0,sd=sd.u)
+> gshape <- 1.5
+> d$offset <- rgamma(ntot,1,1)
+> d <- within(d,
++             {
++               eta0 <- beta[1]+beta[2]*x+offset
++               eta <- eta0+r[f]
++             })
+> 
+> 
+> ## cloglog:
+> cc <- binomial(link="cloglog")
+> d$mu0 <- cc$linkinv(d$eta0)
+> d$mu <- cc$linkinv(d$eta)
+> 
+> d$y0 <- rbinom(ntot,prob=d$mu0,size=1)
+> d$y <- rbinom(ntot,prob=d$mu,size=1)
+> 
+> ## A. no random effects (vs glm)
+> g0 <- glmmadmb(y0~x+offset(offset),data=d,
++                family="binomial",link="cloglog")
+Estimated covariance matrix may not be positive definite
+ 2.59807 3.09145
+Estimated covariance matrix may not be positive definite
+ 2.59807 3.09145
+> 
+> g0A <- glm(y0~x+offset(offset),data=d,
++            family=binomial(link="cloglog"))
+Warning messages:
+1: glm.fit: fitted probabilities numerically 0 or 1 occurred 
+2: glm.fit: fitted probabilities numerically 0 or 1 occurred 
+> 
+> mlist <- list(glmmadmb0=g0,glm0=g0A)
+> 
+> stopifnot(all.equal(coef(g0),coef(g0A),tol=1e-4))
+> 
+> t(sapply(mlist,coef))
+          (Intercept)         x
+glmmadmb0   0.2989378 0.4219393
+glm0        0.2989406 0.4219311
+> sapply(mlist,logLik)
+glmmadmb0      glm0 
+-90.47130 -90.47131 
+> 
+> ## B. random effects (vs glmer)
+> g1 <- glmmadmb(y~x+(1|f)+offset(offset),data=d,
++                family="binomial",link="cloglog")
+> 
+> if (FALSE) {  ## FIXME: restore after glmer fixed
++     library(lme4)
++     g1A <- glmer(y~x+(1|f)+offset(offset),data=d,
++                  family=binomial(link="cloglog"))
++     c1A <- fixef(g1A)
++     r1A <- ranef(g1A)
++     v1A <- VarCorr(g1A)
++     L1A <- logLik(g1A)
++     detach("package:lme4")
++     c(logLik(g1),L1A)
++ }
+> summary(g1)
+
+Call:
+glmmadmb(formula = y ~ x + (1 | f) + offset(offset), data = d, 
+    family = "binomial", link = "cloglog")
+
+AIC: 199.5 
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)  
+(Intercept)   0.9646     0.5681    1.70     0.09 .
+x             0.0397     0.3434    0.12     0.91  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Number of observations: total=500, f=10 
+Random effect variance(s):
+Group=f
+            Variance StdDev
+(Intercept)    1.181  1.087
+
+
+Log-likelihood: -96.7505 
+> 
+> 
+> p0 <- predict(g1)
+> pb <- predict(g1,type="response")
+> 
+> 
+> ### GAMMA/LOG LINK
+> gshape <- 1.5
+> 
+> cc <- Gamma(link="log")
+> d$mu0 <- cc$linkinv(d$eta0)
+> d$mu <- cc$linkinv(d$eta)
+> 
+> d$y0 <- rgamma(ntot,shape=gshape,scale=d$mu0/gshape)
+> d$y <- rgamma(ntot,shape=gshape,scale=d$mu/gshape)
+> 
+> ## glmmadmb vs glm, no random effect
+> g2 <- glmmadmb(y0~x,data=d,family="gamma",link="log")
+Estimated covariance matrix may not be positive definite
+ 3.71273e-05 2.96388 2.9944
+> g2L <- glm(y0~x,data=d,family=Gamma(link="log"))
+> 
+> stopifnot(all.equal(coef(g2),coef(g2L),tol=1e-5))
+> 
+> g3 <- glmmadmb(y~x+(1|f),data=d,family="gamma",link="log")
+> ## "matrix not pos definite in sparse choleski" warning
+> if (FALSE) {
++   library(lme4)
++    ## boom!
++    g3L <- glmer(y~x+(1|f),data=d,family=Gamma(link="log"))
++    coef(g3)
++    fixef(g3L)  ## NA ... urgh
++ }
+> 
+> ## POISSON/identity link
+> dd <- data.frame(y=rpois(20,lambda=10),f=factor(rep(1:5,each=4)))
+> g5 <- glmmadmb(y~1,data=dd,
++          start=list(fixed=10),
++          family="poisson",link="identity")
+Estimated covariance matrix may not be positive definite
+ 10.2545
+Estimated covariance matrix may not be positive definite
+ 10.2545
+> g5R <- glmmadmb(y~1+(1|f),data=dd,
++          start=list(fixed=10),
++          family="poisson",link="identity")
+> 
+> coef(g5)
+(Intercept) 
+   10.25002 
+> coef(g5R)
+(Intercept) 
+   10.25002 
+> 
+> ### GAUSSIAN/IDENTITY LINK
+> d$mu0 <- d$eta0
+> d$mu <- d$eta
+> 
+> d$y0 <- rnorm(ntot,d$mu0,sd=1)
+> d$y <- rnorm(ntot,d$mu,sd=1)
+> 
+> g4 <- lm(y0~x,data=d)
+> g4B <- glm(y0~x,data=d)
+> g4C <- glmmadmb(y0~x,data=d,family="gaussian")
+Estimated covariance matrix may not be positive definite
+ 1.34149e-05 1.83726 1.83726
+> stopifnot(all.equal(coef(g4),coef(g4B),coef(g4C)))
+> stopifnot(all.equal(c(logLik(g4)),c(logLik(g4B)),c(logLik(g4C)),tol=1e-4))
+> 
+> 
+> proc.time()
+   user  system elapsed 
+ 24.137   5.000  29.945 

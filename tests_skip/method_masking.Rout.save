@@ -1,0 +1,69 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> library(lme4)
+Loading required package: lattice
+Loading required package: Matrix
+Loading required package: Rcpp
+Loading required package: RcppEigen
+
+Attaching package: ‘lme4’
+
+The following object is masked from ‘package:glmmADMB’:
+
+    VarCorr
+
+> 
+> gm1_lme4 <- glmer(cbind(incidence, size - incidence) ~
++                   period + (1 | herd), data = cbpp, family = binomial)
+> gm1_glmmADMB <- glmmadmb(cbind(incidence, size -
++                                incidence) ~ period + (1 | herd),
++                          data = cbpp, family = "binomial")
+matrix not pos definite in sparse choleski
+> 
+> ## this is NECESSARY for right now
+> glmmADMB:::VarCorr(gm1_glmmADMB)
+Group=herd
+            Variance StdDev
+(Intercept)   0.4152 0.6443
+> try(VarCorr(gm1_glmmADMB))
+Group=herd
+            Variance StdDev
+(Intercept)   0.4152 0.6443
+> fixef(gm1_lme4)
+(Intercept)     period2     period3     period4 
+ -1.3985173  -0.9923592  -1.1286669  -1.5803207 
+> 
+> proc.time()
+   user  system elapsed 
+  6.064   4.332  10.327 

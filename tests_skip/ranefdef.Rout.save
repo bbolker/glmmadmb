@@ -1,0 +1,92 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## Make sure that ranef() definition coexists nicely
+> library(lme4)
+Loading required package: lattice
+Loading required package: Matrix
+Loading required package: Rcpp
+Loading required package: RcppEigen
+> gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
++                    family = binomial, data = cbpp)
+> ranef(gm1)
+$herd
+   (Intercept)
+1   0.58999772
+2  -0.29889518
+3   0.40623984
+4   0.03927058
+5  -0.19001593
+6  -0.40026161
+7   0.88936536
+8   0.59934680
+9  -0.23764864
+10 -0.54092437
+11 -0.08464142
+12 -0.06481863
+13 -0.68990696
+14  0.97067927
+15 -0.53046350
+
+attr(,"class")
+[1] "ranef.mer"
+> 
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> 
+> ## ranef should now work for glmm.admb fits, should *still*
+> ## work for lme4 models
+> 
+> ranef.x <- function(object,...) print("a")
+> x <- 1
+> class(x) <- "x"
+> try(ranef(x)) ## Error: could not find function "ranef" (not any more!)
+[1] "a"
+> library(nlme)
+
+Attaching package: ‘nlme’
+
+The following object is masked from ‘package:glmmADMB’:
+
+    VarCorr
+
+The following object is masked from ‘package:lme4’:
+
+    lmList
+
+> ranef(x)
+[1] "a"
+> ## [1] "a"
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  4.584   3.884   8.340 

@@ -1,0 +1,45 @@
+Wish/to-do list
+
+Logistics/dissemination
+
+* set up r-forge tracker (e-mail r-forge admins/bug HS); import this list to r-forge tracker
+* (BMB) provide package from www.math.mcmaster.ca for times when R-forge build is absent or out of date (source package only should be OK, since there is no compilable code in the package).  Set up a mirror or alternate repository 
+
+Glitches
+
+* fix warning about non-pos-def corr matrix with norand
+* prettify warning about non-pos-def corr matrix otherwise
+
+Links and families
+
+* allow alternative parameterization (i.e. var=phi*mu) of NB? ["NB1"]
+* implement cloglog link, identity, ... test!
+* allow alternative RE distributions?
+
+Capabilities
+
+* methods: terms(), predict() [with newdata, se.fit], simulate(), model.matrix(), confint() [from quad or MCMC]...
+* residuals() options
+* multinomial family?
+* plot method; fortify method?
+* fix VarCorr method for lme4 compatibility; print.VarCorr.admb method
+* MCMC: add mcmc2.  Better examples/documents
+
+
+Documentation
+* warn on summary() that p-values are based on Wald Z tests
+* work on vignette
+
+ADMB end/interface
+* Build logic to speed up single-RE case (i.e. achieve speed of old version in special case)
+
+Data and examples
+
+* add some sort of progress bar or "working ..." message in the absence of voluminous messages?  progress bar is difficult since ADMB doesn't know how long it will take
+* update epil2?  draw from MASS instead?
+
+Other
+* switch to using R2ADMB as interface layer?? Compare R2ADMB and glmmADMB interface code, take the best of both ...
+
+Long-term
+* "R-side" random structure (difficult/long-term)

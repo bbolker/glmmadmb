@@ -1,0 +1,81 @@
+
+R Under development (unstable) (2013-05-22 r62774) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> data(bacteria,package="MASS")
+> 
+> bacteria$present <- as.numeric(bacteria$y)-1
+> 
+> ## FIXME: restore when problems with new lme4 are sorted!
+> if (FALSE) {
++     library(lme4)
++     gfit <- glmer(present ~ trt + I(week > 2)+(1|ID),family = "binomial", data = bacteria,
++                   optimizer="bobyqa", tolPwrss=1e-13, verbose=10)
++ }
+> 
+> library(glmmADMB)
+Loading required package: MASS
+
+Attaching package: ‘MASS’
+
+The following object is masked _by_ ‘.GlobalEnv’:
+
+    bacteria
+
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> bfit <-  glmmadmb(present ~ trt + I(week > 2), random = ~ 1 | ID,
++                      family = "binomial", data = bacteria)
+> if (!is.null(bfit$phi)) {
++ stopifnot(all.equal(bfit$phi,
++                     glmmADMB:::make_phi(model.matrix(~trt+I(week>2),data=bacteria)),
++                                         tol=1e-4))
++ }
+> 
+> 
+> if (FALSE) {
++     gsd <- attr(lme4::VarCorr(gfit)[[1]],"stddev")
++     f <- lme4::fixef(gfit)
++     u <- unlist(lme4::ranef(gfit)[[1]])/gsd
++     bfit2 <-glmmadmb(present ~ trt + I(week > 2), random = ~ 1 | ID,
++                      family = "binomial", data = bacteria,
++                  start =list(fixed=f,RE_sd=log(gsd),u=u),
++                  verbose=TRUE)
++ slist <- list(fixed=f,RE_sd=log(gsd),u=u)
++ bfit3 <-glmmadmb(present ~ trt + I(week > 2), random = ~ 1 | ID,
++                      family = "binomial", data = bacteria,
++                  start=slist,
++                  extra.args="-phase 5",
++                  verbose=TRUE)
++ }
+> 
+> ## 9.6130683
+> 
+> proc.time()
+   user  system elapsed 
+  6.384   2.976   9.195 

@@ -1,0 +1,161 @@
+#define SEPFUN1
+#define SEPFUN3
+#define SEPFUN4
+class model_data : public ad_comm{
+  public:
+  data_int  n;
+  data_int  p_y;
+  data_matrix y;
+  data_int  p;
+  data_matrix X;
+  data_int  M;
+  data_ivector q;
+  data_ivector m;
+  int sum_mq;
+  data_int  ncolZ;
+  data_matrix Z;
+  data_imatrix I;
+  data_ivector cor_flag;
+  data_ivector cor_block_start;
+  data_ivector cor_block_stop;
+  data_int  numb_cor_params;
+  data_int  like_type_flag;
+  data_int  link_type_flag;
+  data_int  rlinkflag;
+  data_int  no_rand_flag;
+  data_int  zi_flag;
+  data_int  zi_kluge;
+  data_int  poiss_prob_bound;
+  data_int  nbinom1_flag;
+  data_int  intermediate_maxfn;
+  data_int  has_offset;
+  data_vector offset;
+  dmatrix rr;
+  dmatrix phi;
+  double ymax;
+  ~model_data();
+  model_data(int argc,char * argv[]);
+  friend class model_parameters;
+};
+
+class model_parameters : public model_data ,
+  public function_minimizer
+{
+public:
+  friend class df1b2_pre_parameters;
+  friend class df1b2_parameters;
+  static model_parameters * model_parameters_ptr;
+  static model_parameters * get_model_parameters_ptr(void)
+  {
+    return model_parameters_ptr;
+  }
+  ~model_parameters();
+  void preliminary_calculations(void);
+  void set_runtime(void);
+  virtual void * mycast(void) {return (void*)this;}
+  static int mc_phase(void)
+  {
+    return initial_params::mc_phase;
+  }
+  static int mceval_phase(void)
+  {
+    return initial_params::mceval_phase;
+  }
+  static int sd_phase(void)
+  {
+    return initial_params::sd_phase;
+  }
+  static int current_phase(void)
+  {
+    return initial_params::current_phase;
+  }
+  static int last_phase(void)
+  {
+    return (initial_params::current_phase
+      >=initial_params::max_number_phases);
+  }
+  static prevariable current_feval(void)
+  {
+    return *objective_function_value::pobjfun;
+  }
+private:
+  ivector integer_control_flags;
+  void begin_df1b2_funnel(void);
+  void end_df1b2_funnel(void);
+  dvector double_control_flags;
+  param_init_bounded_number pz;
+  param_init_vector beta;
+  param_stddev_vector real_beta;
+  param_init_bounded_vector tmpL;
+  param_init_bounded_vector tmpL1;
+  param_init_bounded_number log_alpha;
+  param_stddev_number  alpha;
+  param_stddev_vector S;
+  random_effects_vector u;
+  param_number prior_function_value;
+  param_number likelihood_function_value;
+  objective_function_value  g;
+public:
+  virtual void userfunction(void);
+  virtual void report(void);
+  virtual void final_calcs(void);
+  model_parameters(int sz,int argc, char * argv[]);
+  virtual void initializationfunction(void);
+  virtual void AD_uf_inner(void){pre_userfunction();}
+  virtual void AD_uf_outer(void){pre_userfunction();}
+  virtual void user_function(void){;}
+  virtual void allocate(void){;}
+SEPFUN3 void kludgepen(const prevariable&  v);
+SEPFUN3 void betapen(const dvar_vector&  v);
+SEPFUN3 void n01_prior(const prevariable&  u);
+SEPFUN3 void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector& tmpL1,const dvar_vector& _ui, const dvar_vector& beta,const prevariable& log_alpha, const prevariable& pz);
+
+};
+  
+class df1b2_pre_parameters : public model_parameters
+{ 
+public: 
+  df1b2_pre_parameters(int sz,int argc, char * argv[]) : 
+    model_parameters(sz,argc,argv){;}
+  re_objective_function_value  g;
+  void begin_df1b2_funnel(void); 
+  void setup_quadprior_calcs(void); 
+  void end_df1b2_funnel(void);
+ void kludgepen(const funnel_init_df1b2variable&  v);
+ void betapen(const funnel_init_df1b2vector&  v);
+ void n01_prior(const funnel_init_df1b2variable&  u);
+ void log_lik(int _i,const funnel_init_df1b2vector& tmpL,const funnel_init_df1b2vector& tmpL1,const funnel_init_df1b2vector& _ui, const funnel_init_df1b2vector& beta,const funnel_init_df1b2variable& log_alpha, const funnel_init_df1b2variable& pz);
+}; 
+ 
+class df1b2_parameters : public df1b2_pre_parameters 
+{ 
+public: 
+  static df1b2_parameters * df1b2_parameters_ptr;
+  static df1b2_parameters * get_df1b2_parameters_ptr(void) 
+  { 
+    return df1b2_parameters_ptr; 
+  } 
+  df1b2_parameters(int sz,int argc, char * argv[]) : 
+    df1b2_pre_parameters(sz,argc,argv) 
+  { 
+    df1b2_parameters_ptr=this;
+  }
+  df1b2_init_bounded_number pz;
+  df1b2_init_vector beta;
+  df1b2vector real_beta;
+  df1b2_init_bounded_vector tmpL;
+  df1b2_init_bounded_vector tmpL1;
+  df1b2_init_bounded_number log_alpha;
+  df1b2variable  alpha;
+  df1b2vector S;
+  df1b2_init_vector u;
+  df1b2variable prior_function_value;
+  df1b2variable likelihood_function_value;
+   // re_objective_function_value  g;
+  virtual void user_function(void); 
+  virtual void allocate(void); 
+ // void begin_df1b2_funnel(void); 
+ // void setup_quadprior_calcs(void); 
+ // void end_df1b2_funnel(void);
+
+};

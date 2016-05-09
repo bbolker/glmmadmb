@@ -1,0 +1,115 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## testing diagonal and full (unstructured) variance-covariance matrices
+> data("Orthodont",package="nlme")
+> if (FALSE) {
++     ## library("nlme")
++     m1_full <- lme(distance~age*Sex,random=~age|Subject,data=Orthodont)
++     m1_diag <- lme(distance~age*Sex,
++               random=list(~1|Subject,~0+age|Subject),data=Orthodont)
++     ## extract real var-cov matrix from nlme output (hack)
++     getvc <- function(m,diag=FALSE) {
++         vv <- VarCorr(m)
++         if (!diag) {
++             n <- nrow(vv)-1
++             mv <- matrix(nrow=n,ncol=n)
++             diag(mv) <- as.numeric(vv[1:n,1])
++                  mv[1,2] <- mv[2,1] <- as.numeric(vv[2,3])*
++                 as.numeric(vv[1,2])*as.numeric(vv[2,2])
++             rownames(mv) <- colnames(mv) <- rownames(vv)[1:2]
++         } else {
++             n <- nrow(vv)-3
++             mv <- matrix(0,nrow=n,ncol=n)
++             diag(mv) <- as.numeric(vv[c(2,4),1])
++             rownames(mv) <- colnames(mv) <- rownames(vv)[c(2,4)]
++         }
++         mv
++     }
++     ## dput(getvc(m1_full)); dput(getvc(m1_diag,diag=TRUE))
++ }
+> mv_full <- structure(c(5.78643483, -0.289792615437794, -0.289792615437794, 
++                        0.03252449), .Dim = c(2L, 2L),
++                      .Dimnames = list(c("(Intercept)", 
++                      "age"), c("(Intercept)", "age")))
+> mv_diag <- structure(c(2.416804256, 0, 0, 0.007746916),
++                      .Dim = c(2L, 2L), .Dimnames = list(
++                                        c("(Intercept)", "age"),
++                                        c("(Intercept)", "age")))
+> 
+> library("glmmADMB")
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> m1_full <- glmmadmb(distance~age*Sex,random=~age|Subject,
++                family="gaussian",data=Orthodont,
++                corStruct="full")
+> m1_diag <- glmmadmb(distance~age*Sex,random=~age|Subject,
++                family="gaussian",data=Orthodont)
+>         
+> 
+> ## not really necessary: S is computed within ADMB and returned
+> ## in the std file.  But this is a nice cross-check ...
+> mvVarCorr0 <- function(tmpL,tmpL1,corStruct="full") {
++     n <- length(tmpL)
++     L <- matrix(0,nrow=n,ncol=n)
++     sseq <- function(a,b) if (b<a) numeric(0) else a:b
++     L[1,1] <- 1
++     i2 <- 1
++     for (i in 1:n) {
++         L[i,i] <- 1
++         for (j in sseq(1,i-1)) {
++             L[i,j] <- tmpL1[i2]; i2 <- i2+1
++         }
++         L[i,1:i] <- L[i,1:i]/sqrt(sum(L[i,1:i]^2))
++     }
++     L <- sweep(L,1,exp(tmpL),"*")
++     tmpS <- L %*% t(L)
++     tmpS
++ }
+> ###
+> ## values read from std file
+> tmpL <- c(7.5832e-01,-1.8699e+00)
+> tmpL1 <- -7.5494e-01
+> 
+> vv0 <- mvVarCorr0(tmpL,tmpL1)
+> vv <- VarCorr(m1_full)
+> unclass(vv)
+$Subject
+            (Intercept)       age
+(Intercept)     4.55690 -0.198250
+age            -0.19825  0.023759
+
+> stopifnot(all.equal(vv0,unname(unclass(vv)[[1]]),tol=1e-4))
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+ 19.165   3.304  22.352 

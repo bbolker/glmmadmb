@@ -1,0 +1,672 @@
+% \VignetteIndexEntry{basic examples of glmmADMB usage}
+% \VignettePackage{glmmADMB}
+% \VignetteDepends{plotMCMC}
+% \VignetteDepends{ggplot2}
+% \VignetteDepends{grid}
+% \VignetteDepends{coefplot2}
+% \VignetteDepends{bbmle}
+% \VignetteDepends{lme4}
+% \VignetteDepends{coda}
+% \VignetteDepends{MASS}
+%\VignetteEngine{knitr::knitr}
+\documentclass{article}
+%\usepackage{lineno}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+%\usepackage[usenames]{color}
+\usepackage[american]{babel}
+\newcommand{\R}{{\sf R}}
+\newcommand{\Splus}{{\sf S-PLUS}}
+\newcommand{\fixme}[1]{\textbf{FIXME: #1}}
+% \newcommand{\fixme}[1]{\color{red} #1 \color{black}}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{alltt}
+\newcommand{\code}[1]{{\tt #1}}
+\usepackage{fancyvrb}
+\usepackage{natbib}
+\VerbatimFootnotes
+\bibliographystyle{chicago}
+
+\title{Getting started with the \code{glmmADMB} package}
+\author{Ben Bolker, Hans Skaug, Arni Magnusson, Anders Nielsen}
+\date{\today}
+\begin{document}
+\maketitle
+
+%\linenumbers
+
+%\SweaveOpts{fig.width=5,fig.height=5,out.width="0.8\\textwidth"}
+<<setopts,echo=FALSE>>=
+require("knitr")
+opts_chunk$set(fig.width=5,fig.height=5,out.width="0.8\\textwidth",echo=TRUE)
+Rver <- paste(R.version$major,R.version$minor,sep=".")
+@ 
+
+<<graphopts,echo=FALSE>>=
+library("ggplot2")
+library("grid")
+theme_set(theme_bw())
+zmargin <- theme(panel.margin=unit(0,"lines"))
+@ 
+
+
+\section{Introduction/quick start}
+
+\code{glmmADMB} is a package, built on 
+the open source
+\href{http://admb-project.org}{AD Model Builder}
+nonlinear fitting engine, for fitting generalized
+linear mixed models and extensions.
+
+\begin{itemize}
+  \item response distributions: Poisson, binomial, negative binomial (NB1 and NB2 parameterizations), Gamma, Beta, truncated Poisson and negative binomial; Gaussian; logistic
+  \item link functions: log, logit, probit, complementary log-log (\code{"cloglog"}), inverse, identity
+  \item zero-inflation (models with a constant zero-inflation value only); hurdle models via truncated Poisson/NB
+  \item single or multiple (nested or crossed) random effects
+  \item offsets
+  \item post-fit MCMC chain for characterizing uncertainty
+\end{itemize}
+
+As of version 0.6.5, the package has been greatly revised to
+allow a wider range of response and link functions and to allow
+models with multiple random effects.  For now, the resulting package
+is slower than the old (single-random-effect version), but we hope
+to increase its speed in the future.
+
+In order to use \code{glmmADMB} effectively you should already
+be reasonably familiar with generalized linear mixed models
+(GLMMs), which in turn requires familiarity with (i) generalized
+linear models (e.g. the special cases of logistic, binomial,
+and Poisson regression) and (ii) `modern' mixed models (those
+working via maximization of the marginal likelihood rather
+than by manipulating sums of squares).
+
+In order to fit a model in \code{glmmADMB} you need to:
+\begin{itemize}
+\item specify a model for the fixed effects, in the standard
+  R (Wilkinson-Rogers) formula notation (see \code{?formula}
+  or Section 11.1 of the \href{http://cran.r-project.org/doc/manuals/R-intro.pdf}{Introduction to R}. 
+  Formulae can also include \emph{offsets}.
+\item specify a model for the random effects, in the notation
+  that is common to the \code{nlme} and \code{lme4} packages.
+  Random effects are specified as \code{e|g}, where \code{e}
+  is an effect and \code{g} is a grouping factor (which must
+  be a factor variable, or a nesting of/interaction among factor variables).
+  For example, the formula would be \code{1|block} for a random-intercept model
+  or \code{time|block} for a model with random variation in slopes
+  through time across groups specified by \code{block}. A model
+  of nested random effects (block within site) would be
+  \code{1|site/block}; a model of crossed random effects
+  (block and year) would be \code{(1|block)+(1|year)}.
+  
+  Random effects can be specified
+  either in a separate \code{random} argument (as in \code{nlme})
+  or as part of the model formula (as in \code{lme4}).
+\item choose the error distribution by specifying the family 
+  (as a string: e.g. \code{"poisson"}  or \code{"binomial"})
+\item specify a link function (as a string: e.g. 
+  \code{"logit"} or \code{"log"}.
+\item optionally specify that zero-inflation is present
+  \code{zeroInflation=TRUE}. In the current version, zero-inflation
+  can only be specified as a single constant term across the
+  entire model --- i.e. it cannot vary across groups or
+  with covariates.
+\end{itemize}
+
+This document was
+generated using \Sexpr{R.version$version.string} and package versions:
+<<pkgversions,echo=FALSE>>=
+usedpkgs <- sort(c(##"coefplot2",
+                 "ggplot2","glmmADMB","lme4","coda","plotMCMC",
+                   "bbmle","MASS"))
+i1 <- installed.packages()
+usedpkgs <- usedpkgs[usedpkgs %in% rownames(i1)]
+print(i1[usedpkgs,"Version"],quote=FALSE)
+@ 
+
+%% fixme: would like to deal with smart quotes
+<<smartquotes,echo=FALSE>>=
+op <- options(useFancyQuotes=FALSE)
+@ 
+<<citation>>=
+citation("glmmADMB")
+@ 
+<<unsmartquotes,echo=FALSE>>=
+options(op)
+@ 
+\section{Owls data}
+
+These data, taken from \cite{zuur_mixed_2009} and ultimately
+from \cite{roulinbersier_2007}, quantify
+the number of negotiations among owlets (owl chicks)
+in different nests \emph{prior} to the arrival
+of a provisioning parent as a function of food treatment
+(deprived or satiated), the sex of the parent, and
+arrival time.  The total number of calls from the
+nest is recorded, along with the total brood size, which
+is used as an offset to allow the use of a Poisson response.
+
+Since the same nests are measured repeatedly, the nest is used as
+a random effect.
+The model can be expressed as a zero-inflated generalized
+linear mixed model (ZIGLMM).
+
+First we draw some pictures (Figures~\ref{fig:owl1}, \ref{fig:owl2}).
+
+Load the \code{glmmADMB} package to get access to the \code{Owls}
+data set; load the \code{ggplot2} graphics package.
+<<loadpkgs,message=FALSE,warning=FALSE>>=
+library("glmmADMB")
+library("ggplot2")
+@ 
+
+Various small manipulations of the data set:
+(1) reorder nests by mean negotiations per chick, for plotting
+purposes; (2) add log brood size variable (for offset);
+(3) rename response variable.
+%% FIXME: I get a warning message ("NAs introduced by coercion")  here, but only in knitr,
+%%  and not on a clean start ... ?
+%% some weird package interaction ?
+<<owltransform,warning=FALSE>>=
+Owls <- transform(Owls,
+                  Nest=reorder(Nest,NegPerChick),
+                  NCalls=SiblingNegotiation)
+@ 
+(If you were really using this data set you should start
+with \code{summary(Owls)} to see what columns are there
+and what their characteristics are.)
+
+<<owlplot1,echo=FALSE,message=FALSE,warning=FALSE,fig.cap="Basic view of owl data (arrival time not shown). (FIXME: clip at zero?)",fig.ref="fig:owl1">>=
+G0 <- ggplot(Owls,aes(x=reorder(Nest,NegPerChick),
+                      y=NegPerChick))+
+  xlab("Nest")+ylab("Negotiations per chick")+coord_flip()+
+  facet_grid(FoodTreatment~SexParent)
+G0+stat_sum(aes(size=..n..),alpha=0.5)+zmargin+
+      scale_size_continuous(name="# obs",
+                            breaks=seq(1,9,by=2))+
+    theme(axis.title.x=element_text(hjust=0.5,size=12),
+         axis.text.y=element_text(size=7))
+@ 
+
+<<owlplot2,echo=FALSE,fig.cap="Basic view of owl data \\#2 (nest identity not shown)",fig.ref="fig:owl2">>=
+G1 <- ggplot(Owls,aes(x=ArrivalTime,
+                      y=NegPerChick,colour=FoodTreatment,
+                      linetype=SexParent,
+                      shape=SexParent))
+G1+stat_sum(aes(size=factor(..n..)),alpha=0.5)+geom_smooth()+
+      ## facet_grid(.~SexParent)+zmargin+
+      labs(x="Arrival time",y="Negotiations per chick")+
+      scale_size_discrete(name="# obs",
+                          breaks=c("1","2"))
+@ 
+
+Now fit some models:
+
+The basic \code{glmmadmb} fit --- a zero-inflated Poisson model.
+<<time1,echo=FALSE,cache=TRUE>>=
+gt1 <- system.time(glmmadmb(NCalls~(FoodTreatment+ArrivalTime)*SexParent+
+                                     offset(log(BroodSize))+(1|Nest),
+                                     data=Owls,
+                                     zeroInflation=TRUE,
+                                     family="poisson"))
+@ 
+%% ditto with NA coercion warnings
+<<glmmadmbfit,cache=TRUE>>=
+fit_zipoiss <- glmmadmb(NCalls~(FoodTreatment+ArrivalTime)*SexParent+
+                                     offset(log(BroodSize))+(1|Nest),
+                                     data=Owls,
+                                     zeroInflation=TRUE,
+                                     family="poisson")
+@
+
+<<zipoisssum>>=
+summary(fit_zipoiss)
+@ 
+
+The \code{coefplot2} package knows about \code{glmmadmb} fits:
+
+<<coefplotmg1,fig.width=8,eval=FALSE>>=
+library("coefplot2")
+coefplot2(fit_zipoiss)
+@ 
+
+We can also try a standard zero-inflated negative binomial model;
+the default is the ``NB2'' parameterization (variance = $\mu(1+\mu/k)$).
+<<glmmadmbnbinomfit,cache=TRUE>>=
+fit_zinbinom <- glmmadmb(NCalls~(FoodTreatment+ArrivalTime)*SexParent+
+                  offset(log(BroodSize))+(1|Nest),
+                  data=Owls,
+                  zeroInflation=TRUE,
+                  family="nbinom")
+@
+
+Alternatively, use an ``NB1'' fit (variance = $\phi \mu$).
+<<glmmadmbnbinom1fit,cache=TRUE>>=
+fit_zinbinom1 <- glmmadmb(NCalls~(FoodTreatment+ArrivalTime)*SexParent+
+                                     offset(log(BroodSize))+(1|Nest),
+                                     data=Owls,
+                                     zeroInflation=TRUE,
+                                     family="nbinom1")
+@ 
+
+Relax the assumption that total number of calls is strictly proportional
+to brood size (i.e. using log(brood size) as an offset):
+<<glmmadmbnbinom1vfit,cache=TRUE>>=
+fit_zinbinom1_bs <- glmmadmb(NCalls~(FoodTreatment+ArrivalTime)*SexParent+
+                                     BroodSize+(1|Nest),
+                                     data=Owls,
+                                     zeroInflation=TRUE,
+                                     family="nbinom1")
+@ 
+
+Every change we have made so far improves the fit --- changing distributions
+improves it enormously, while changing the role of brood size makes only
+a modest (-1 AIC unit) difference:
+<<aictab>>=
+library("bbmle")
+AICtab(fit_zipoiss,fit_zinbinom,fit_zinbinom1,fit_zinbinom1_bs)
+@ 
+
+Compare the parameter estimates:
+<<cplot2,eval=FALSE>>=
+vn <- c("food","arrivaltime","sex","food:sex","arrival:sex","broodsize")
+coefplot2(list(ZIP=fit_zipoiss,
+               ZINB=fit_zinbinom,
+               ZINB1=fit_zinbinom1,
+               ZINB1_brood=fit_zinbinom1_bs),
+          varnames=vn,
+          legend=TRUE)
+@ 
+
+\subsection{Hurdle models}
+
+In contrast to zero-inflated models, hurdle models treat zero-count
+and non-zero outcomes as two completely separate categories, rather than
+treating the zero-count outcomes as a mixture of structural and
+sampling zeros.
+
+As of version 0.6.7.1, \code{glmmADMB} includes truncated
+Poisson and negative binomial familes and hence can fit hurdle models.
+The two parts of the model have to be fitted separately, however.
+First we fit a truncated distribution to the non-zero outcomes:
+
+<<glmmadmbnbinomhfit,cache=TRUE>>=
+fit_hnbinom1 <- glmmadmb(NCalls~(FoodTreatment+ArrivalTime)*SexParent+
+                         BroodSize+(1|Nest),
+                         data=subset(Owls,NCalls>0),
+                         family="truncnbinom1")
+@ 
+
+Then we fit a model to the binary part of the data (zero vs. non-zero).
+In this case, I started by fitting a simple (intercept-only) model
+with intercept-level random effects only.  This comes a bit closer
+to matching the previous (zero-inflation) models, which treated zero-inflation
+as a single constant level across the entire data set (in fact,
+leaving out the random effects and just using 
+\verb+glmmADMB(nz~1,data=Owls,family="binomial")+, or 
+\verb+glm(nz~1,data=Owls,family="binomial")+, would
+be an even closer match).
+I then fitted a more complex binary model --- this is
+all a matter of judgment about how complex a model it's worth
+trying to fit to a given data set --- but it does look as though
+the zero-inflation varies with arrival time and satiation.
+
+<<glmmadmbcfit,cache=TRUE>>=
+Owls$nz <- as.numeric(Owls$NCalls>0)
+fit_count <- glmmadmb(nz~1+(1|Nest),
+                         data=Owls,
+                         family="binomial")
+fit_ccount <- glmmadmb(nz~(FoodTreatment+ArrivalTime)*SexParent+(1|Nest),
+                       data=Owls,
+                       family="binomial")
+AICtab(fit_count,fit_ccount)
+summary(fit_ccount)
+@ 
+
+\subsection{Testing and inference}
+
+(Sketchy: to be expanded.)
+
+There are many challenging statistical issues surrounding tests
+of terms in GLMMs. Most often people use minor variations of 
+existing approaches (Wald tests, likelihood ratio tests, etc.),
+either accounting for or sweeping under the rug some of the
+differences that should be accounted for when moving either from
+linear mixed models (LMMs) or generalized linear models (GLMs)
+to GLMMs.  See \url{http://glmm.wikidot.com/faq}, or a good
+book on GLMMs (!!), for a discussion of these issues.
+
+In the meantime, keeping the limitations in mind, 
+you can 
+\begin{itemize}
+  \item use AIC to select models or generated weighted predictions (see example above).
+  \item use \code{anova} to perform a likelihood ratio test:
+<<anovacomp>>=
+anova(fit_zipoiss,fit_zinbinom)
+@     
+\item use \code{Anova} from the \code{car} package to generate Wald tests:
+<<caranova>>=
+car::Anova(fit_zinbinom)
+@   
+\end{itemize}
+
+\begin{itemize}
+\item coefplot2
+\item drop1??, 
+\item simulate??, 
+\item parametric bootstrapping ??
+\end{itemize}
+
+
+\subsection{Integration with lme4}
+
+FIXME: commented out while \code{lme4} bugs are being ironed out!
+<<lme4_chunk1,eval=FALSE>>=
+library("lme4")
+gm1_lme4 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+                  data = cbpp, family = binomial)
+gm1_glmmADMB <- glmmadmb(cbind(incidence, size - incidence) ~ period + (1 | herd),
+                  data = cbpp, family = "binomial")
+## sessionInfo()
+fixef(gm1_lme4)
+fixef(gm1_glmmADMB) ## or coef()
+unlist(ranef(gm1_lme4))
+unlist(ranef(gm1_glmmADMB))
+VarCorr(gm1_lme4)
+detach("package:lme4")  ## kluge!
+VarCorr(gm1_glmmADMB)
+@ 
+
+\subsubsection{Convert glmmADMB parameters to lme4}
+
+\fixme{this section is UNDER CONSTRUCTION}
+<<getlme4>>=
+library("lme4") 
+@ 
+<<lme4glmmadmbconv,eval=FALSE>>=
+## seems to crash r-forge tests at the moment?
+ ## requires DEVELOPMENT version of lme4 ...
+new_lme4 <- packageVersion("lme4")>"0.999375.42"
+if (new_lme4) {
+    lme4fun <- update(gm1_lme4,devFunOnly=TRUE)
+    deviance(gm1_lme4)
+    lme4fun(c(0,fixef(gm1_lme4)))  ## variance set to zero
+    v1 <- getME(gm1_lme4,"theta")  ## log-Cholesky factor: equal in this case to standard dev
+    lme4fun(c(v1,fixef(gm1_lme4))) ## observed variance (*almost* identical)
+    v2 <- sqrt(gm1_glmmADMB$S[[1]])
+    lme4fun(c(v2,fixef(gm1_lme4))) ## ???
+}
+@ 
+
+<<lme4glmmadmbconv2,eval=FALSE>>=
+## FIXME: figure out why this crashes knitr in non-interactive mode!!
+## (then turn evaluation back on)
+glmmadmbfun <- function(pars,minval=exp(-9.5),verbose=FALSE) {
+    if (pars[1]==0) {
+        warning(sprintf("variance parameter set to min val (%f)",minval))
+        pars[1] <- minval
+    }
+    g0 <- glmmadmb(cbind(incidence, size - incidence) ~ period + (1 | herd),
+                   data = cbpp, family = "binomial",
+                   extra.args=c("-maxfn 1 -phase 6"),
+                   verbose=verbose,
+                   start=list(RE_sd=log(pars[1]), fixed=pars[-1]))
+    -logLik(g0)
+}
+## glmmadmbfun(c(0,fixef(gm1_lme4)))  ## fails
+v2B <- glmmadmbfun(c(v2,fixef(gm1_lme4)))
+v1B <- glmmadmbfun(c(v1,fixef(gm1_lme4)))
+all.equal(v1B,v2B,-logLik(gm1_glmmADMB))
+@ 
+\subsection{MCMC fitting}
+
+AD Model Builder can run a \emph{post hoc} Markov chain to
+assess variability --- that is, it uses the MLE as a starting point and the
+estimated sampling distribution (variance-covariance matrix) of the parameters
+as a candidate distribution, and ``jumps around'' the parameter space in
+a consistent way (using Metropolis-Hastings updating with a multivariate
+normal candidate distribution) to generate a series of samples
+from a posterior distribution of the parameter distribution (by default assuming
+flat, usually improper, priors: please see the ADMB documentation, or \cite{Bolker2008}, for
+more details).
+
+<<loadowlmodel,echo=FALSE>>=
+getdata("OwlModel")
+@ 
+This is a useful way to find confidence intervals etc., but is often slow.  In the example below,
+I ran a chain of 50,000 MCMC iterations --- on examination, the default
+chain of 1000 iterations was much too short --- which took 
+several hours on a modern (2012) desktop.
+
+<<fakeowlmodel,eval=FALSE>>=
+OwlModel_nb1_bs_mcmc <- glmmadmb(NCalls~(FoodTreatment+ArrivalTime)*SexParent+
+                                     BroodSize+(1|Nest),
+                                     data=Owls,
+                                     zeroInflation=TRUE,
+                                     family="nbinom1",
+                                  mcmc=TRUE,
+                                  mcmc.opts=mcmcControl(mcmc=50000))
+@ 
+
+
+Extract the MCMC chain from the fit;
+load the \code{coda} package for analyzing and plotting MCMC results.
+
+<<loadcodapkg>>=
+library("coda")
+m <- OwlModel_nb1_bs_mcmc$mcmc
+@ 
+
+Look at the trace plots.
+(Something a bit odd happens at the end of the chain, so we drop the last few values \ldots
+there may be a bug in the import-handling for MCMC for very long chains \ldots)
+For convenience and brevity, I will discard the random-effects columns, which start with 
+\code{u.}:
+
+<<mcmcclip>>=
+tm <- window(m,1,320)
+tm <- tm[,!grepl("^u\\.",colnames(m))]
+@ 
+
+<<mcmcplot1>>=
+library("plotMCMC")
+plotTrace(tm)
+@ 
+
+The Geweke diagnostic gives $Z$ scores for each
+variable for a comparison
+between (by default) the first 10\% and last 50\% of
+the chain
+<<geweke>>=
+(gg <- geweke.diag(tm))
+summary(2*pnorm(abs(gg$z),lower.tail=FALSE))
+@ 
+
+%% would make this a footnote but run into problems compiling LaTeX
+%% version ... "keyval error: 1 undefined"
+
+The most frequently used diagnostic, Gelman-Rubin
+(\code{gelman.diag}), requires multiple chains. The full set of
+diagnostic functions available in \code{coda} is:
+<<codafuns,echo=FALSE>>=
+a1 <- apropos(".diag$",where=TRUE)
+print(unname(a1[names(a1)==which(search()=="package:coda")]),
+      quote=FALSE)
+@ 
+
+
+\code{effectiveSize} gives the effective length of the
+chain for each variable, i.e. the number of samples
+corrected for autocorrelation:
+<<effsize>>=
+range(effectiveSize(tm))
+@ 
+
+\code{HPDinterval} gives the highest posterior density
+(credible interval):
+<<HPDintervalCI>>=
+try(detach("package:lme4")) ## kluge!!
+HPDinterval(tm)
+@ 
+
+You might prefer inferences based on the quantiles instead:
+<<qCI>>=
+t(apply(tm,2,quantile,c(0.025,0.975)))
+@ 
+
+You can also look at density plots or pairwise scatterplots
+(``splom'' in \code{lattice} and
+\code{plotMCMC}, for \textbf{S}catter\textbf{plo}t \textbf{m}atrices)
+(not shown):
+<<eval=FALSE>>=
+plotDens(tm)
+plotSplom(tm,pch=".")  
+@ 
+
+The MCMC output in \code{glmmADMB} is not completely translated.
+It includes, in order:
+\begin{description}
+  \item[pz] zero-inflation parameter (raw)
+  \item[fixed effect parameters] Named in the same way as the results of \code{coef()}
+    or \code{fixef()}.
+\item[tmpL] variances (standard-deviation scale)
+\item[tmpL1] correlation/off-diagonal elements of variance-covariance matrices (``off-diagonal elements of the Cholesky factor of 
+  the correlation matrix'). (If you need to transform these to correlations, 
+  you will need to construct the relevant matrices with 1 on the diagonal and
+  compute the cross-product, $C C^T$ (see \code{tcrossprod}); if this makes no sense to you, contact the maintainers \ldots)
+\item[alpha] overdispersion/scale parameter
+\item[u] random effects (\emph{unscaled}: these can be scaled using the estimated random-effects standard deviations from \code{VarCorr()})
+\end{description}
+If you need to some insufficiently-processed component of the MCMC output and can't figure out how, please contact the maintainers and encourage them to work on them some more  (!)
+ 
+\section{Other information}
+The standard set of accessors is available:
+\begin{description}
+  \item[\code{coef}] extract (fixed-effect) coefficients
+  \item[\code{fixef}] a synonym for \code{coef}, for consistency
+    with \code{nlme}/\code{lme4}
+  \item[\code{ranef}] extract random effect coefficients
+    (``BLUPs'' or ``conditional modes'')
+  \item[\code{residuals}] extract (Pearson) residuals
+  \item[\code{fitted}] fitted values
+  \item[\code{predict}] predicted values
+    (\emph{based only on fixed effects, not on random effects}),
+    possibly with standard errors (\emph{based only on 
+      uncertainty of fixed effects}), possibly for new data
+  \item[\code{logLik}] extract log-likelihood
+  \item[\code{AIC}] extract AIC
+  \item[\code{summary}] print summary
+  \item[\code{stdEr}] extract standard errors of coefficients
+  \item[\code{vcov}] extract estimated variance-covariance matrix of coefficients
+  \item[\code{VarCorr}] extract variance-covariance matrices of random effects
+  \item[\code{confint}] extract confidence intervals of fixed-effect coefficients
+\end{description} 
+In case this list is out of date, you can try \code{methods(class="glmmadmb")} to
+tell you what methods are currently available.
+
+\section{To do/road map}
+\subsection{Vignette}
+\begin{itemize}
+  \item More examples
+  \item Show how to specify starting values
+  \item fix MCMC! Apply phi, std dev
+  \item General troubleshooting (extra arguments, running outside R)
+  \item basic intro to \code{R2admb}?
+  \item (appendix?) document details of TPL file -- robustness hacks, etc.
+\end{itemize}
+\subsection{Code}
+\begin{itemize}
+\item Speed improvement by identifying special cases?
+\item Spatial models?
+\item Additional flexibility:
+  \begin{itemize}
+  \item Allow model specification for zero-inflation
+  \item Allow model specification for shape parameter
+  \item More complex variance models (see AS-REML/MCMCglmm for interface/syntax ideas)
+  \end{itemize}
+  \item Improve \code{predict} method: allow prediction based on REs
+  \item \code{simulate} method
+  \item fix \code{step}/\code{stepAIC} (???)
+  \item instructions for evaluating likelihood at a particular set of parameters/
+    translating parameters (and log-likelihoods) to scales/parameterizations used
+    by other packages
+\end{itemize}
+
+
+%%  AFTER HERE: stuff that's not really finished
+%Load data on epilepsy from the \code{MASS} package
+%(the \code{glmmADMB} package contains a copy of
+%this information as well).
+
+<<loaddat,echo=FALSE,eval=FALSE>>=
+library("MASS")
+epil2 <- transform(epil,
+                   Base=log(base/4),
+                   Age=log(age),
+                   Visit=scale(period,center=TRUE,scale=5),
+                   subject=factor(subject))
+@ 
+
+<<echo=FALSE,eval=FALSE>>=
+ggplot(epil2,aes(x=base,y=log(1+y),colour=trt))+
+       stat_sum(aes(size=factor(..n..)),alpha=0.5)+
+  facet_wrap(~period)+
+  scale_x_log10()+geom_smooth()+zspace
+@ 
+
+<<fit1,echo=FALSE,eval=FALSE>>=
+fm <- glmmadmb(y~Base*trt+Age+Visit+(Visit|subject),
+                data=epil2, family="nbinom")
+@ 
+
+<<fit2,echo=FALSE,eval=FALSE>>=
+fm2 <- glmmadmb(y~Base*trt+Age+Visit+(1|subject),
+                data=epil2, family="nbinom")
+
+@ 
+
+<<echo=FALSE,eval=FALSE>>=
+glm0 <- glm(y ~ lbase*trt + lage + V4, family = poisson,
+            data = epil)
+@ 
+<<echo=FALSE,eval=FALSE>>=
+## stuff taken from help("epil",package="MASS")
+## figure out what's going on here?  work this
+## up into a reasonable comparison ...
+
+## basic GLM analysis
+summary(glm(y ~ lbase*trt + lage + V4, family = poisson,
+            data = epil), cor = FALSE)
+epil3 <- subset(epil,period == 1)
+epil3["period"] <- rep(0, 59); epil3["y"] <- epil3["base"]
+epil["time"] <- 1; epil3["time"] <- 4
+epil3 <- rbind(epil, epil3)
+epil3$pred <- unclass(epil3$trt) * (epil3$period > 0)
+epil3$subject <- factor(epil3$subject)
+epil3 <- aggregate(epil3, list(epil3$subject, epil3$period > 0),
+                   function(x) if(is.numeric(x)) sum(x) else x[1])
+epil3$pred <- factor(epil3$pred,
+                     labels = c("base", "placebo", "drug"))
+
+contrasts(epil3$pred) <- structure(contr.sdif(3),
+                                   dimnames = list(NULL, 
+                                     c("placebo-base", "drug-placebo")))
+summary(glm(y ~ pred + factor(subject) + offset(log(time)),
+            family = poisson, data = epil3), cor = FALSE)
+
+summary(glmmPQL(y ~ lbase*trt + lage + V4,
+                random = ~ 1 | subject,
+                family = poisson, data = epil))
+summary(glmmPQL(y ~ pred, random = ~1 | subject,
+                family = poisson, data = epil3))
+     
+@ 
+
+
+<<echo=FALSE>>=
+detach("package:glmmADMB")
+detach("package:ggplot2")
+@ 
+\bibliography{glmmadmb}
+\end{document}

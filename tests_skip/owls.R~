@@ -1,0 +1,3 @@
+data(Owls)
+g1 <- glmmadmb(SiblingNegotiation~1,family="poisson",data=Owls)
+log(mean(Owls$SiblingNegotiation))  ## correct value

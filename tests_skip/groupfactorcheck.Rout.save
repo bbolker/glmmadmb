@@ -1,0 +1,43 @@
+
+R Under development (unstable) (2013-04-25 r62670) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> apa <- data.frame(odist=ordered(sample(1:5,replace=TRUE,size=100)),
++             sl=runif(100),abun=rnbinom(100,mu=2,size=1))
+> 
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> gg <- try(glmmadmb(abun~odist+(1|sl),data=apa,zeroInflation=TRUE,family="nbinom"),silent=TRUE)
+> ## should throw an error from Droplevels
+> stopifnot(inherits(gg,"try-error"),grepl("Error in Droplevels",gg))
+> 
+> proc.time()
+   user  system elapsed 
+   0.60    1.62    2.10 

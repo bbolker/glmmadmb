@@ -1,0 +1,108 @@
+
+R Under development (unstable) (2014-02-16 r65012) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> 
+> ## copied from emdbook package:
+> rzinbinom <- function (n, mu, size, zprob)  {
++     ifelse(runif(n) < zprob, 0, rnbinom(n, mu = mu, size = size))
++ }
+> 
+> dzinbinom <- function (x, mu, size, zprob, log = FALSE)  {
++     logv <- log(1 - zprob) + dnbinom(x, mu = mu, size = size, 
++         log = TRUE)
++     logv <- ifelse(x == 0, log(zprob + exp(logv)), logv)
++     if (log) logv else exp(logv)
++   }
+> 
+> set.seed(1001)
+> y0 <- rnbinom(500,mu=2,size=0.5)
+> y <- rzinbinom(500,mu=2,size=0.5,zprob=0.5)
+> 
+> g0 <- glmmadmb(y0~1,family="nbinom")
+Estimated covariance matrix may not be positive definite
+ 0.000126947 2.8277
+> logLik(g0)
+'log Lik.' -928.811 (df=2)
+> sum(dnbinom(y0,mu=exp(coef(g0)),size=g0$alpha,log=TRUE))
+[1] -928.8114
+> 
+> m1 <- MASS:::fitdistr(y0,"negative binomial")
+> coef(m1)
+     size        mu 
+0.4265314 2.0681262 
+> logLik(m1)
+'log Lik.' -928.8114 (df=2)
+> 
+> g1 <- glmmadmb(y0~1,family="nbinom",zeroInflation=TRUE)
+Estimated covariance matrix may not be positive definite
+ 0.00012695 0.137985 2.82781
+> 
+> logLik(g0)
+'log Lik.' -928.811 (df=2)
+> logLik(g1)
+'log Lik.' -928.811 (df=3)
+> 
+> g3 <- glmmadmb(y~1,family="nbinom")
+Estimated covariance matrix may not be positive definite
+ 0.000259257 7.18386
+> g4 <- glmmadmb(y~1,family="nbinom",zeroInflation=TRUE)
+Estimated covariance matrix may not be positive definite
+ 0.000267842 0.0254396 230.067
+> 
+> ##  library(bbmle)
+> ##  m2 <- mle2(y~dzinbinom(mu=mu,size=alpha,zprob=zprob),
+> ##             method="L-BFGS-B",
+> ##             start=list(mu=2,alpha=0.5,zprob=0.2),
+> ##             lower=rep(0.002,3),
+> ##             upper=c(mu=Inf,alpha=Inf,zprob=0.998),
+> ##             data=data.frame(y))
+> 
+> ##  m2P <- profile(m2,which="zprob",std.err=0.025)
+> ##  plot(m2P,show.points=TRUE)
+> 
+> m4 <- fitdistr(y,dzinbinom,start=list(mu=2,size=0.5,zprob=0.5))
+There were 14 warnings (use warnings() to see them)
+> 
+> ae <- function(x,y,tolerance=1e-2) {
++   all.equal(x,y,check.attr=FALSE,tolerance=tolerance)
++ }
+> 
+> if (.Platform$OS.type=="unix") {
++     stopifnot(ae(unname(exp(coef(g4))),unname(coef(m4)["mu"])),
++               ae(g4$alpha,unname(coef(m4)["size"])),
++               ae(g4$pz,unname(coef(m4)["zprob"]),tol=3e-2))
++ }
+> 
+> proc.time()
+   user  system elapsed 
+  4.892   3.304  17.920 

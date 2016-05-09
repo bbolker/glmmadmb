@@ -1,0 +1,22 @@
+2011-04-26  Ben Bolker  <bolker@mcmaster.ca>
+
+	* many, many changes (branch)
+
+2010-11-10  Ben Bolker  <bolker@mcmaster.ca>
+
+	* added Owls data and example (shows use of offset= argument)
+
+2010-11-09  Ben Bolker  <bolker@mcmaster.ca>
+
+	* moved inst/admb to inst/bin; added inst/tpl directory
+
+2010-11-06  Ben Bolker  <bolker@mcmaster.ca>
+
+	* added coef, fitted, residuals accessors, TODO list
+
+2010-11-05  Ben Bolker  <bolker@mcmaster.ca>
+
+	* added this ChangeLog (parallel to SVN log?)
+	* added 'verbose' flag to glmm.admb (default FALSE), to suppress interim output from ADMB
+
+

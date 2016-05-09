@@ -1,0 +1,110 @@
+
+R Under development (unstable) (2014-02-16 r65012) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> set.seed(1001)
+> 
+> data("bioChemists",package="pscl")
+> ## library(pscl)
+> ## h1 <- hurdle(art~fem+mar+kid5+phd+ment,data=bioChemists)
+> ## h2 <- hurdle(art~fem+mar+kid5+phd+ment,data=bioChemists,dist="negbin")
+> 
+> ## stored results:
+> psclcoef <- structure(c(0.671139312871508,
++                         -0.228582657955377, 0.0964849892769541, 
++                         -0.142187559329214, -0.0127263725842253,
++                         0.0187454797396211, 
++                         0.236796012435245, -0.251151128617988,
++                         0.326233583613064, -0.285248715785051, 
++                         0.0222193970990452, 0.0801213546865395),
++                       .Names = c("count_(Intercept)", 
++                         "count_femWomen", "count_marMarried",
++                         "count_kid5", "count_phd", 
++                         "count_ment", "zero_(Intercept)", "zero_femWomen",
++                         "zero_marMarried", "zero_kid5",
++                         "zero_phd", "zero_ment"))
+> 
+> psclcoef2 <- structure(c(0.355124753990917, -0.244671930706915, 0.103417222781896, 
++                          -0.153259854258221, -0.00293325670968586, 0.0237381567796306, 
++                          0.236796012435245, -0.251151128617988, 0.326233583613064, -0.285248715785051, 
++                          0.0222193970990452, 0.0801213546865395),
++                        .Names = c("count_(Intercept)", 
++                          "count_femWomen", "count_marMarried", "count_kid5", "count_phd", 
++                          "count_ment", "zero_(Intercept)", "zero_femWomen", "zero_marMarried", 
++                          "zero_kid5", "zero_phd", "zero_ment"))
+> 
+> bb <- subset(bioChemists,art>0)
+> library(glmmADMB)
+Loading required package: MASS
+Loading required package: R2admb
+
+Attaching package: ‘glmmADMB’
+
+The following object is masked from ‘package:MASS’:
+
+    stepAIC
+
+The following object is masked from ‘package:stats’:
+
+    step
+
+> g1 <- glmmadmb(art~fem+mar+kid5+phd+ment,
++                family="truncpoiss",link="log",data=bb)
+Estimated covariance matrix may not be positive definite
+ 0.285958 0.527718 0.563515 0.589973 0.668483 0.737988
+Estimated covariance matrix may not be positive definite
+ 0.285958 0.527718 0.563515 0.589973 0.668483 0.737988
+> cp1 <- psclcoef[grep("count_",names(psclcoef))]
+> cg1 <- coef(g1)
+> ## at rforge SVN 176 / ADMB SVN 217, increased tolerance from 3e-6 to 1e-5
+> ## RELATIVE difference is just a bit bigger than 1e-4
+> reltolchk <- function(a,b,tol=1e-6) {
++   stopifnot(all.equal(c(unname(a)),c(unname(b)),tol))
++ }
+> 
+> reltolchk(cp1,cg1,2e-5)
+> 
+> bioChemists <- transform(bioChemists,nz=as.numeric(art>0))
+> g2 <- glmmadmb(nz~fem+mar+kid5+phd+ment,
++                family="binomial",data=bioChemists)
+Estimated covariance matrix may not be positive definite
+ 4.42203 4.76712 5.07556 5.13652 5.3577 14.6402
+Estimated covariance matrix may not be positive definite
+ 4.42203 4.76712 5.07556 5.13652 5.3577 14.6402
+> cp2 <-  psclcoef[grep("zero_",names(psclcoef))]
+> cg2 <- coef(g2)
+> if (.Platform$OS.type !="windows") {
++     stopifnot(abs(cp2-cg2)<2e-5) ## FIXME: Windows problem
++ }
+> 
+> ## negative binomial version:
+> g3 <- glmmadmb(art~fem+mar+kid5+phd+ment,
++                family="truncnbinom",link="log",data=bb)
+Estimated covariance matrix may not be positive definite
+ 0.00030286 1.05158 1.28246 1.3307 1.38323 1.45659 3.10909
+> cp3 <- psclcoef2[grep("count_",names(psclcoef2))]
+> cg3 <- coef(g3)
+> if (.Platform$OS.type != "windows") {
++     reltolchk(cp3,cg3,1e-4)  ## FIXME: Windows problem
++ }
+> 
+> ## binomial part should be identical ...
+> 
+> proc.time()
+   user  system elapsed 
+  4.908   3.228  21.607 

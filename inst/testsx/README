@@ -1,0 +1,2 @@
+extra tests -- generally computationally intensive, we don't want to
+run them every time we check the package
