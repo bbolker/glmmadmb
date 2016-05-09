@@ -1,4 +1,4 @@
-This is the new development space for the `glmmADMB` package, generalized linear mixed models based on [AD Model Builder](http://admb-project.org). For now, see the [web page based on r-forge]((http://glmmadmb.r-forge.r-project.org/) for information.
+This is the new development space for the `glmmADMB` package, generalized linear mixed models based on [AD Model Builder](http://admb-project.org). For now, see the [web page based on r-forge](http://glmmadmb.r-forge.r-project.org/) for information.
 
 ## Installation
 
