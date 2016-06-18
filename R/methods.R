@@ -70,11 +70,11 @@ nobs.glmmadmb <- function(object,...) {
 
 ## big difficulty here with nlme (S3 method, arguments x, sigma=1, rdig=3)
 ##  and lme4 (S4 methods, arguments x, ...)
-VarCorr.glmmadmb <- function(x,sigma=1,rdig=3) {
-  if (!missing(sigma) || !missing(rdig)) warning("'sigma' and 'rdig' arguments are present for compatibility only: ignored")
-  vc <- x$S
-  class(vc) <- "VarCorr"
-  vc
+VarCorr.glmmadmb <- function(x,sigma=1,rdig=3,...) {
+    if (!missing(sigma) || !missing(rdig)) warning("'sigma' and 'rdig' arguments are present for compatibility only: ignored")
+    vc <- x$S
+    class(vc) <- "VarCorr"
+    vc
 }
 
 print.VarCorr <- function(x, digits=4, ...) {
@@ -100,10 +100,10 @@ print.VarCorr <- function(x, digits=4, ...) {
 VarCorr.summary.glmmadmb <- VarCorr.glmmadmb
 
 ## want to make this work when lme4 is loaded, too ... needs S4 method
-setOldClass("glmmadmb")
-setOldClass("summary.glmmadmb")
-setMethod("VarCorr", signature(x="glmmadmb"), VarCorr.glmmadmb)
-setMethod("VarCorr", signature(x="summary.glmmadmb"), VarCorr.glmmadmb)
+## setOldClass("glmmadmb")
+## setOldClass("summary.glmmadmb")
+## setMethod("VarCorr", signature(x="glmmadmb"), VarCorr.glmmadmb)
+## setMethod("VarCorr", signature(x="summary.glmmadmb"), VarCorr.glmmadmb)
 ## FIXME:
 ##   needed:
 ##    update (for general convenience & to make drop1 work)

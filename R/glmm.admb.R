@@ -684,7 +684,10 @@ glmmadmb <- function(formula, data, family="poisson", link,start,
       out$fitted <- out$fitted * (1-out$pz)
   }
 
+  ## how do we handle models with estimated scale parameters?
   out$sd.est <- with(out,switch(family,
+                                gaussian=alpha,
+                                binom=sqrt(lambda*(1-lambda)/nyobs),
                                 poisson=sqrt(lambda),
                                 nbinom=sqrt(lambda*(1+lambda/alpha)),
                                 nbinom1=sqrt(lambda*alpha),
@@ -692,7 +695,7 @@ glmmadmb <- function(formula, data, family="poisson", link,start,
                                 beta=sqrt(lambda*(1-lambda)/(1+alpha)),
                                 ## gamma: parameterized as scale, mean (=shape*scale)
                                 gamma=sqrt(lambda*alpha),
-                                    {warning("sd.est not defined for this family"); rep(NA,length(lambda))}))
+     {warning("sd.est not defined for this family"); rep(NA,length(lambda))}))
   ##  stop("sd.est not defined for family",family))
 
   if (family %in% c("binom","betabinom") && p_y>1) {

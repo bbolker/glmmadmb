@@ -7,6 +7,8 @@
 \section{Changes in version 0.8.4 (07-05-2016)}{
   \itemize{
     \item fix fixed-effect correlation reporting bug
+    \item add sd.est for Gaussian
+    \item fix some spurious warnings
     \item move to Github (?)
   }
 }
