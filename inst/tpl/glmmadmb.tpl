@@ -7,11 +7,13 @@ DATA_SECTION
   init_matrix y(1,n,1,p_y)			// Observation matrix
   init_int p					// Number of fixed effects
   init_matrix X(1,n,1,p)			// Design matrix for fixed effects
+  vector predy(1,n)
+  vector mytau(1,n)
   init_int M					// Number of RE blocks (crossed terms)
   init_ivector q(1,M)				// Number of levels of the grouping variable per RE block; Can be skipped
   init_ivector m(1,M)				// Number of random effects parameters within each block
   int sum_mq					// sum(m*q), calculated below: should be read from R
-  init_int ncolZ				
+  init_int ncolZ
   init_matrix Z(1,n,1,ncolZ)			// Design matrix for random effects
   init_imatrix I(1,n,1,ncolZ)			// Index vectors into joint RE vector "u" for each
   init_ivector cor_flag(1,M)			// Indicator for whether each RE block should be correlated
@@ -115,16 +117,20 @@ PARAMETER_SECTION
       ncolS(i) = m(i)*(m(i)+1)/2;
   int nS = sum(ncolS);             	//  Total number
  END_CALCS
-  
+
   init_bounded_number pz(.000001,0.999,zi_phase)
+ !! pz.set_scalefactor(1000.);
   init_vector beta(1,p,1)     	// Fixed effects
-  sdreport_vector real_beta(1,p)     
+  sdreport_vector real_beta(1,p)
   init_bounded_vector tmpL(1,ncolZ,-10,10.5,rand_phase)		// Log standard deviations of random effects
+ !! tmpL.set_scalefactor(1000.);
   init_bounded_vector tmpL1(1,numb_cor_params,-10,10.5,cor_phase)	// Offdiagonal elements of cholesky-factor of correlation matrix
-  init_bounded_number log_alpha(log_alpha_lowerbound,6.,alpha_phase)	
+  init_bounded_number log_alpha(log_alpha_lowerbound,6.,alpha_phase)
+ !!log_alpha.set_scalefactor(1000.);
+
   sdreport_number alpha
   sdreport_vector S(1,nS)
-  random_effects_vector u(1,sum_mq,rand_phase)    // Pool of random effects 
+  random_effects_vector u(1,sum_mq,rand_phase)    // Pool of random effects
   objective_function_value g                    	   // Log-likelihood
  LOC_CALCS
   for (int i=I.indexmin() ; i<= I.indexmax(); i++)
@@ -151,10 +157,11 @@ PROCEDURE_SECTION
     for (i=1;i<=sum_mq;i++)
       n01_prior(u(i));			// u's are N(0,1) distributed
 
-  if (rlinkflag && !last_phase()) 
+  if (rlinkflag && current_phase()<3)
   {
     betapen(beta);
   }
+  tmpLpen(tmpL);
 
   for(i=1;i<=n;i++)
     log_lik(i,tmpL,tmpL1,u(I(i)),beta,log_alpha,pz);
@@ -205,18 +212,27 @@ PROCEDURE_SECTION
     }
 
   }
-			
+
 SEPARABLE_FUNCTION void kludgepen(const prevariable&  v)
  g +=.5*square(v);
 
 SEPARABLE_FUNCTION void betapen(const dvar_vector&  v)
   g+=0.5*norm2(v);
 
+SEPARABLE_FUNCTION void tmpLpen(const dvar_vector&  tmpL)
+  int mmin=tmpL.indexmin();
+  int mmax=tmpL.indexmax();
+  for (int i=mmin;i<=mmax;i++)
+  {
+    if (value(tmpL(i))<-8.0)
+      g+=square(tmpL(i)+8.0);
+  }
+
 SEPARABLE_FUNCTION void n01_prior(const prevariable&  u)
  g -= -0.5*log(2.0*M_PI) - 0.5*square(u);
 
 SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector& tmpL1,const dvar_vector& _ui, const dvar_vector& beta,const prevariable& log_alpha, const prevariable& pz)
-  
+
   ADUNCONST(dvar_vector,ui)
   int i,j, i_m, Ni;
   double e1=1e-8; // formerly 1.e-20; current agrees with nbmm.tpl
@@ -260,20 +276,20 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
     dvar_vector tmp1(1,m(i_m));
 
     //tmp1 = ui(lower,upper).shift(1);
- 
+
     // FIXME: re-introduce rlinkflag here?
     if (initial_params::current_phase < initial_params::max_number_phases-1)
     {
       tmp1 = random_bound(ui(lower,upper).shift(1),5);
     }
-    else if 
+    else if
       (initial_params::current_phase == initial_params::max_number_phases-1)
     {
       tmp1 = random_bound(ui(lower,upper).shift(1),20);
     }
     else
     {
-    
+
       tmp1 = ui(lower,upper).shift(1);
     }
 
@@ -305,7 +321,7 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
     eta += offset(_i);
   dvariable lambda;
   dvariable fpen=0.0;
-  switch(link_type_flag) 
+  switch(link_type_flag)
   {
      case 0:    // [robust] log
        if (rlinkflag) {
@@ -329,12 +345,12 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
        } else {
           lambda = 1.0/(1.0+exp(-eta));
        }
-       if (initial_params::current_phase < initial_params::max_number_phases-1)
+       if (initial_params::current_phase < initial_params::max_number_phases-2)
        {
          lambda=0.999*lambda+0.0005;
        }
-       else if 
-         (initial_params::current_phase == initial_params::max_number_phases-1)
+       else if
+         (initial_params::current_phase == initial_params::max_number_phases-2)
        {
          lambda=0.999999*lambda+0.0000005;
        }
@@ -354,7 +370,7 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
 	 {
        // FIXME: document/clarify epsilon values  Add rlinkflag?
        dvariable eeta;
-       
+
        if (rlinkflag) {
           eeta = -mfexp(eta);
        } else {
@@ -377,7 +393,7 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
           lambda = (1.0-posfun(1.0-lambda,eps2,fpen));
        }
       */
-       if (rlinkflag && !last_phase()) 
+       if (rlinkflag && !last_phase())
        {
          lambda=0.999999*lambda+0.0000005;
        }
@@ -392,6 +408,7 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
   }
 
   dvariable  tau = nbinom1_flag ? alpha : 1.0 + e1 + lambda/alpha ;
+  mytau(_i)=value(tau);
   dvariable tmpl; 				// Log likelihood
 
   int cph=current_phase();
@@ -403,16 +420,16 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
   switch(like_type_flag)
   {
     case 0:   // Poisson
-	if (poiss_prob_bound==0) { 
+	if (poiss_prob_bound==0) {
 	    tmpl =  log_density_poisson(y(_i,1),lambda);
 	} else {
-          if (cph<5)  
+          if (cph<5)
 	    tmpl = log(e3+exp(log_density_poisson(y(_i,1),lambda)));  // DF hack May 2013
           else
 	    tmpl = log(e4+exp(log_density_poisson(y(_i,1),lambda)));  // DF hack May 2013
 	}
       break;
-    case 1:   // Binomial: y(_i,1)=#successes, y(_i,2)=#failures, 
+    case 1:   // Binomial: y(_i,1)=#successes, y(_i,2)=#failures,
       if (p_y==1) {
          if (y(_i,1)==1) {
            tmpl = log(e1+lambda); //BMB: bvprobit.tpl uses e1=1e-10 here
@@ -425,24 +442,25 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
       }
       break;
     case 2:   // neg binomial
+      predy(_i)=value(lambda);
       if (cph<2)  // would like to use alpha_phase rather than 2 but it's in local_calcs
       	   tmpl = -square(log(1.0+y(_i,1))-log(1.0+lambda));
-      if (cph<4)  
+      else if (cph<4)
 	  tmpl = -(1.0+y(_i,1))*square(log(1.0+y(_i,1))-log(1.0+lambda));
       else
 	  tmpl = log_negbinomial_density(y(_i,1),lambda,tau);
       break;
-    case 3: // Gamma 
+    case 3: // Gamma
         tmpl = log_gamma_density(y(_i,1),alpha,alpha/lambda);
 	break;
-    case 4: // Beta 
+    case 4: // Beta
       // FIXME: "log_beta_density" seems more consistent but changing name
       //       causes problems -- already exists somewhere?
       tmpl = ln_beta_density(y(_i,1),lambda,alpha);
       break;
     case 5: // Gaussian
-      tmpl = -0.5*(log(2.0*M_PI))-log(alpha)-0.5*square((y(_i,1)-lambda)/alpha);	
-      break; 
+      tmpl = -0.5*(log(2.0*M_PI))-log(alpha)-0.5*square((y(_i,1)-lambda)/alpha);
+      break;
     case 6:   // truncated Poisson
       // FIXME: check somewhere (here, or preferably in R code) for trunc poisson + not ZI + 0 in response
       if (value(lambda) > 1.0e-10) {
@@ -459,7 +477,7 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
       else
         tmpl = log_negbinomial_density(y(_i,1),lambda,tau)-log(1.0-pow(1.0+lambda/alpha,-alpha));
       break;
-    case 8: // logistic 
+    case 8: // logistic
 	tmpl = -log(alpha) + (y(_i,1)-lambda)/alpha - 2*log(1+exp((y(_i,1)-lambda)/alpha));
       break;
     case 9: // beta-binomial
@@ -472,21 +490,38 @@ SEPARABLE_FUNCTION void log_lik(int _i,const dvar_vector& tmpL,const dvar_vector
       cerr << "Illegal value for like_type_flag" << endl;
       ad_exit(1);
   }
-	
-  // Zero inflation part 
+
+  // Zero inflation part
   // zi_kluge: apply ZI whether or not zi_flag is true
   if(zi_flag || zi_kluge) {
     // if (zi_model_flag) {
-    // 
+    //
     // }
     if(y(_i,1)==0)
       g -= log(e2+pz+(1.0-pz)*mfexp(tmpl));
     else
-      g -= log(e2+(1.0-pz)*mfexp(tmpl));
+      //g -= log(e2+(1.0-pz)*mfexp(tmpl));
+      g -= log(1.0-pz)+tmpl;
    } else g -= tmpl;
+
 
 REPORT_SECTION
   report << beta*phi << endl;
+  switch(like_type_flag)
+  {
+  case 2:
+    report << " obs index   obs value   pred value  (obs-pred)^2/(pred_var) " << endl;
+    for (int i=1;i<=n;i++)
+    {
+      report << setw(6) << i << "     " << y(i,1) << "         " << predy(i)
+             << "        " << square(y(i,1)-predy(i))/(predy(i)*mytau(i))<< endl;
+    }
+    break;
+  default:
+    break;
+  }
+
+
 
 TOP_OF_MAIN_SECTION
   arrmblsize=40000000;
