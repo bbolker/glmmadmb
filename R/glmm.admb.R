@@ -1,3 +1,5 @@
+
+
 admbControl <- function(impSamp=0,
                         maxfn=500,
                         imaxfn=500,
@@ -299,6 +301,8 @@ glmmadmb <- function(formula, data, family="poisson", link,start,
       mf$formula <- comb_formula(mf$formula,zi_model)
   }
 
+  environment(mf$formula) <- environment(formula)
+  
   mf$drop.unused.levels <- TRUE
   mf[[1L]] <- as.name("model.frame")
 

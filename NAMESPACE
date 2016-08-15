@@ -22,7 +22,7 @@ importFrom("graphics", "plot")
 importFrom("stats", "AIC", "as.formula", "cov2cor", "formula",
              "logLik", "model.matrix", "model.offset", "model.response",
              "pchisq", "plogis", "pnorm", "printCoefmat", "qlogis",
-             "qnorm", "terms", "update.formula", "vcov")
+             "qnorm", "terms", "update.formula", "vcov", "reformulate")
 importFrom("utils", "download.file", "file_test", "read.table",
              "write.table")
 

@@ -26,8 +26,8 @@ fixef(object,\ldots)
 \method{fitted}{glmmadmb}(object,\dots)
 \method{vcov}{glmmadmb}(object,\dots)
 \method{stdEr}{glmmadmb}(object,\dots)
-\method{VarCorr}{glmmadmb}(x,sigma=1,rdig=3)
-\method{VarCorr}{summary.glmmadmb}(x,sigma=1,rdig=3)
+\method{VarCorr}{glmmadmb}(x,sigma=1,rdig=3,...)
+\method{VarCorr}{summary.glmmadmb}(x,sigma=1,rdig=3,...)
 }
 \arguments{
   \item{x}{a fitted \code{glmmadmb} model}
