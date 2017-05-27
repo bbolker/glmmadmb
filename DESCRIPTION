@@ -52,3 +52,4 @@ Collate:
     'summary.glmm.admb.R'
     'utilities.R'
     'getbin.R'
+RoxygenNote: 5.0.1

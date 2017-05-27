@@ -70,15 +70,14 @@ process_randformula <- function(f,random,data) {
 
   ## generate model matrix from component
   ## FIXME: fails with ~1 and no data ...
-  cfun <- function(lbit,mdata) {
+  cfun <- function(lbit,mdata,env) {
     ##
-    if (!is.null(nrow(mdata))) {
-      m <- model.matrix(as.formula(paste("~",lbit)),mdata)
-    } else {
-      ## hack: pull LHS of formula from global f
-      m <- model.matrix(as.formula(paste(as.character(f[2]),"~",lbit)))
-    }
-    m
+    nodat <- is.null(nrow(mdata))
+    resp <- if (nodat) as.character(f[2]) else NULL
+    ff <- reformulate(lbit,response=resp)
+    environment(ff) <- env
+    m <- if (!nodat) model.matrix(ff,mdata) else model.matrix(ff)
+    return(m)
   }
 
   
@@ -151,7 +150,7 @@ process_randformula <- function(f,random,data) {
   ## LHS <- rep(LHS,ngroupfac)
   ## }
 
-  L <- list(mmats=lapply(LHS,cfun,mdata=data),
+  L <- list(mmats=lapply(LHS,cfun,mdata=data,env=environment(f)),
             codes=lapply(groups,rfun,rdata=data),
             levels=lapply(unlist(dgroupL,recursive=FALSE),levels),
             nterms=nterms,   ## num. derived terms per RE mat
