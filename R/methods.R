@@ -129,6 +129,16 @@ extractAIC.glmmadmb <- function(fit,scale,k=2,...) {
     c(edf=edf,AIC=-2*L+k*edf)
 }
 
-step <- stepAIC <- function(...) {
-    stop("functions step and MASS::stepAIC are **not** currently compatible with glmmADMB.  Sorry.")
+step <- stepAIC <- function(object, ...) {
+    cc <- match.call()
+    if (inherits(object,"glmmadmb")) {
+       stop("functions step and MASS::stepAIC are **not** currently compatible with glmmADMB.  Sorry.")
+    }
+    if (identical(cc[[1]],quote(step))) {
+        return(base::step(object, ...))
+    }
+    if (identical(cc[[1]],quote(stepAIC))) {
+        return(MASS::stepAIC(object, ...))
+    }
+    stop("sorry, I couldn't determine how to delegate this to step() or stepAIC()")
 }
