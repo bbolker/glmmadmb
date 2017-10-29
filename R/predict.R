@@ -20,7 +20,10 @@ predict.glmmadmb <- function(object, newdata=NULL,
     offset <- object$offset
   } else {
     form <- as.formula(as.character(object$fixed)[-2])
-    X <- model.matrix(form, data=newdata)
+    mf <- model.frame(object)
+    fac_vars <- sapply(mf,is.factor)
+    xlevs <- lapply(mf[fac_vars],levels)
+    X <- model.matrix(form, data=newdata, xlev = xlevs)
     tt <- object$terms
     ## handle offset
     offset <- rep(0, nrow(X))
