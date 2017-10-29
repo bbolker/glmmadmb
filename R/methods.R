@@ -135,7 +135,7 @@ step <- stepAIC <- function(object, ...) {
        stop("functions step and MASS::stepAIC are **not** currently compatible with glmmADMB.  Sorry.")
     }
     if (identical(cc[[1]],quote(step))) {
-        return(base::step(object, ...))
+        return(stats::step(object, ...))
     }
     if (identical(cc[[1]],quote(stepAIC))) {
         return(MASS::stepAIC(object, ...))
