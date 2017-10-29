@@ -705,7 +705,7 @@ glmmadmb <- function(formula, data, family="poisson", link,start,
   if (family %in% c("binom","betabinom") && p_y>1) {
       out$residuals <- y[,1]/nyobs-lambda
   } else  out$residuals <- y-lambda
-  tmp <- par_read(file_name)
+  tmp <- read_pars(file_name,warn_nonstd_rep=FALSE)
   out$npar <- tmp$npar   ## BMB: should this be total number of parameters or number of fixed parameters?
   bpar <- bar_read(file_name,n=tmp$npar+1)[-1] ## drop ZI parameter (first)
   if (file.exists("phi.rep")) {
@@ -720,7 +720,7 @@ glmmadmb <- function(formula, data, family="poisson", link,start,
       out$b[] <- newb ## replace values
   }  ## FIXME: should figure out why phi.rep is not getting created on MacOS -- binary created from old TPL?
   out$loglik <- tmp$loglik
-  out$gradloglik <- tmp$gradient
+  out$gradloglik <- tmp$maxgrad
   nfixpar <- length(out$b)
   ## drop cors that don't correspond to fixed-effect parameters
   out$corMat <- tmp$cor[1:nfixpar,1:nfixpar]
@@ -729,9 +729,9 @@ glmmadmb <- function(formula, data, family="poisson", link,start,
   out$convmsg <- ""
   
   if (abs(out$gradloglik) >= 0.001) {
-    out$convmsg <- paste("log-likelihood of gradient=",out$gradloglik)
-    out$conv <- 1
-    warning("Convergence failed:",out$convmsg)
+      out$convmsg <- paste("log-likelihood of gradient=",out$gradloglik)
+      out$conv <- 1
+      warning("Convergence failed:",out$convmsg)
   }
 
   ## BMB: warning/convergence code for bad hessian?

@@ -15,7 +15,7 @@ Imports:
     stats,
     Matrix,
     nlme,
-    R2admb,
+    R2admb (>= 0.7.16),
     stringr,
     plyr,
     coda
