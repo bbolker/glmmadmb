@@ -118,7 +118,7 @@ model.frame.glmmadmb <- function(formula,...) {
 
 df.residual.glmmadmb <- function(object,...) {
     nparams <- nrow(object$frame)-object$npar
-    ## FIXME: is npar correct ???
+    return(nparams)
 }
 
 ## for drop1 etc.

@@ -704,7 +704,7 @@ glmmadmb <- function(formula, data, family="poisson", link,start,
 
   if (family %in% c("binom","betabinom") && p_y>1) {
       out$residuals <- y[,1]/nyobs-lambda
-  } else  out$residuals <- y-lambda
+  } else  out$residuals <- c(y-lambda)
   tmp <- read_pars(file_name,warn_nonstd_rep=FALSE)
   out$npar <- tmp$npar   ## BMB: should this be total number of parameters or number of fixed parameters?
   bpar <- bar_read(file_name,n=tmp$npar+1)[-1] ## drop ZI parameter (first)
